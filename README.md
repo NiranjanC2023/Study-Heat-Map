@@ -20,17 +20,27 @@ Chrome extension (Manifest V3) that tracks time on **productive** vs **distracti
 
 ## Publish to GitHub
 
-From the project root (use your system Terminal or Cursor’s terminal if `git init` works there):
+From the project root:
 
 ```bash
 chmod +x scripts/git-init.sh   # once
 ./scripts/git-init.sh
 ```
 
-Then either:
+Then use **Git in the browser** (no `gh` needed):
 
-- **GitHub CLI**: `gh repo create study-heatmap --public --source=. --remote=origin --push`
-- **Manual**: create an empty repo on GitHub, then `git remote add origin git@github.com:YOUR_USER/study-heatmap.git` and `git push -u origin main`
+1. On [github.com/new](https://github.com/new), create a repository (e.g. `study-heatmap`). Do **not** add a README, `.gitignore`, or license (keep it empty so your first push works).
+2. Copy the repo URL GitHub shows (HTTPS or SSH).
+3. In your project folder:
+
+```bash
+git remote add origin https://github.com/YOUR_USERNAME/study-heatmap.git
+git push -u origin main
+```
+
+(Use your real username and repo name. For SSH: `git@github.com:YOUR_USERNAME/study-heatmap.git`.)
+
+**Optional — GitHub CLI:** the `gh` command is not installed by default. To use it: `brew install gh`, then `gh auth login`, then e.g. `gh repo create study-heatmap --public --source=. --remote=origin --push`.
 
 ## License
 
