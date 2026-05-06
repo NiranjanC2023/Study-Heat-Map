@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Study Heatmap — Site lists</title>
+    <link rel="stylesheet" href="options.css" />
+  </head>
+  <body>
+    <main class="wrap">
+      <header>
+        <h1>Site lists</h1>
+        <p class="lead">
+          One host per line (no <code>https://</code>). Subdomains match automatically (e.g.
+          <code>google.com</code> covers <code>docs.google.com</code>).
+        </p>
+      </header>
+
+      <div class="cols">
+        <label class="field">
+          <span class="title productive">Productive</span>
+          <textarea id="productive" rows="14" spellcheck="false" placeholder="github.com"></textarea>
+        </label>
+        <label class="field">
+          <span class="title distraction">Distraction</span>
+          <textarea id="distraction" rows="14" spellcheck="false" placeholder="youtube.com"></textarea>
+        </label>
+      </div>
+
+      <div class="actions">
+        <span id="status" class="status" aria-live="polite"></span>
+        <button type="button" id="save" class="primary">Save</button>
+      </div>
+    </main>
+    <script type="module" src="options.js"></script>
+  </body>
+</html>

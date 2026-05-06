@@ -1,0 +1,126 @@
+:root {
+  --bg: #0c0c0f;
+  --panel: #14141a;
+  --text: #eceae7;
+  --muted: #8b8794;
+  --accent: #ea580c;
+  --good: #22c55e;
+  --bad: #fb7185;
+  --border: #2b2934;
+  font-family: "Segoe UI", system-ui, sans-serif;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+}
+
+.wrap {
+  max-width: 920px;
+  margin: 0 auto;
+  padding: 32px 24px 48px;
+}
+
+header h1 {
+  margin: 0 0 8px;
+  font-size: 22px;
+  letter-spacing: -0.03em;
+}
+
+.lead {
+  margin: 0 0 24px;
+  color: var(--muted);
+  line-height: 1.5;
+  max-width: 70ch;
+}
+
+.lead code {
+  background: var(--panel);
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 0.92em;
+}
+
+.cols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+@media (max-width: 720px) {
+  .cols {
+    grid-template-columns: 1fr;
+  }
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.title {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.title.productive {
+  color: var(--good);
+}
+
+.title.distraction {
+  color: var(--bad);
+}
+
+textarea {
+  font: 13px/1.45 ui-monospace, "Cascadia Code", monospace;
+  background: var(--panel);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px;
+  resize: vertical;
+  min-height: 220px;
+}
+
+textarea:focus {
+  outline: 2px solid rgba(234, 88, 12, 0.45);
+  outline-offset: 1px;
+}
+
+.actions {
+  margin-top: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 16px;
+}
+
+.status {
+  flex: 1;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.status.ok {
+  color: var(--good);
+}
+
+.primary {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 10px 22px;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.primary:hover {
+  filter: brightness(1.05);
+}

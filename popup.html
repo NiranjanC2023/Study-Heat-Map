@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Study Heatmap</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <header class="top">
+      <div class="brand">
+        <span class="logo" aria-hidden="true"></span>
+        <div>
+          <h1>Study Heatmap</h1>
+          <p class="sub">Today’s focus at a glance</p>
+        </div>
+      </div>
+      <button type="button" id="openDash" class="linkish" title="Full dashboard">Dashboard</button>
+    </header>
+
+    <section class="today" id="todayCard">
+      <div class="metric">
+        <span class="label">Productive</span>
+        <strong id="todayProd">—</strong>
+      </div>
+      <div class="metric">
+        <span class="label">Distraction</span>
+        <strong id="todayDist">—</strong>
+      </div>
+      <div class="metric">
+        <span class="label">Focus ratio</span>
+        <strong id="todayRatio">—</strong>
+      </div>
+    </section>
+
+    <section class="session">
+      <h2>Study session</h2>
+      <p class="hint">Timer runs in the background while Chrome is your focused app.</p>
+      <div class="session-row">
+        <span id="sessionStatus" class="pill idle">No active session</span>
+        <div class="btns">
+          <button type="button" id="btnStart" class="primary">Start</button>
+          <button type="button" id="btnStop" class="ghost" disabled>Stop</button>
+        </div>
+      </div>
+    </section>
+
+    <footer class="foot">
+      <button type="button" id="openOpts" class="linkish">Site lists</button>
+    </footer>
+
+    <script type="module" src="popup.js"></script>
+  </body>
+</html>

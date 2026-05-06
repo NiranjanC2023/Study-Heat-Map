@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Study Heatmap — Dashboard</title>
+    <link rel="stylesheet" href="dashboard.css" />
+  </head>
+  <body>
+    <div class="page">
+      <header class="hero">
+        <div>
+          <h1>Study Heatmap</h1>
+          <p class="tagline">Focus trends, productivity mix, and weekly study reports.</p>
+        </div>
+        <button type="button" id="reload" class="ghost">Refresh</button>
+      </header>
+
+      <section class="card">
+        <div class="card-head">
+          <h2>Productive time heatmap</h2>
+          <p class="desc">Each cell is a day; depth follows productive browsing (tracked hosts).</p>
+        </div>
+        <div class="heatmap-wrap">
+          <div class="dow" aria-hidden="true">
+            <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+          </div>
+          <div id="heatmap" class="heatmap"></div>
+        </div>
+        <div class="legend">
+          <span>Less</span>
+          <span class="swatch a0"></span>
+          <span class="swatch a1"></span>
+          <span class="swatch a2"></span>
+          <span class="swatch a3"></span>
+          <span class="swatch a4"></span>
+          <span>More</span>
+        </div>
+      </section>
+
+      <section class="grid2">
+        <div class="card">
+          <div class="card-head">
+            <h2>Weekly productivity mix</h2>
+            <p class="desc">Productive vs distraction hours (last 8 weeks).</p>
+          </div>
+          <canvas id="bars" width="640" height="260"></canvas>
+        </div>
+        <div class="card">
+          <div class="card-head">
+            <h2>Focus trend</h2>
+            <p class="desc">Share of time on productive sites (last 30 days).</p>
+          </div>
+          <canvas id="line" width="640" height="260"></canvas>
+        </div>
+      </section>
+
+      <section class="card report">
+        <div class="card-head">
+          <h2>This week’s report</h2>
+          <p class="desc">Totals for the ISO week containing today.</p>
+        </div>
+        <div id="weekly" class="weekly"></div>
+      </section>
+    </div>
+
+    <script type="module" src="dashboard.js"></script>
+  </body>
+</html>
