@@ -2,27 +2,39 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <title>Study Heatmap — Site lists</title>
+    <title>Study Heatmap — Settings</title>
     <link rel="stylesheet" href="options.css" />
   </head>
   <body>
     <main class="wrap">
       <header>
-        <h1>Site lists</h1>
+        <h1>Settings</h1>
         <p class="lead">
-          One host per line (no <code>https://</code>). Subdomains match automatically (e.g.
-          <code>google.com</code> covers <code>docs.google.com</code>).
+          Each line is a rule: <code>hostname</code> or <code>hostname/path</code> (path prefix). No
+          <code>https://</code>. Subdomains match the base host (e.g. <code>google.com</code> matches
+          <code>docs.google.com</code>). <strong>Productive rules win</strong> if both lists match.
         </p>
       </header>
+
+      <section class="prefs">
+        <label class="inline">
+          <span>Daily productive goal (minutes)</span>
+          <input type="number" id="dailyGoal" min="1" max="1440" step="1" />
+        </label>
+        <label class="check">
+          <input type="checkbox" id="pomodoroNotify" />
+          <span>Pomodoro phase notifications (system banner)</span>
+        </label>
+      </section>
 
       <div class="cols">
         <label class="field">
           <span class="title productive">Productive</span>
-          <textarea id="productive" rows="14" spellcheck="false" placeholder="github.com"></textarea>
+          <textarea id="productive" rows="14" spellcheck="false" placeholder="github.com&#10;youtube.com/playlist"></textarea>
         </label>
         <label class="field">
           <span class="title distraction">Distraction</span>
-          <textarea id="distraction" rows="14" spellcheck="false" placeholder="youtube.com"></textarea>
+          <textarea id="distraction" rows="14" spellcheck="false" placeholder="youtube.com&#10;reddit.com/r/memes"></textarea>
         </label>
       </div>
 

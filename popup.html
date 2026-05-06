@@ -17,6 +17,17 @@
       <button type="button" id="openDash" class="linkish" title="Full dashboard">Dashboard</button>
     </header>
 
+    <section class="goal-row" id="goalRow" aria-label="Daily goal and streak">
+      <div class="goal-metric">
+        <span class="label">Goal</span>
+        <strong id="goalText">—</strong>
+      </div>
+      <div class="goal-metric">
+        <span class="label">Streak</span>
+        <strong id="streakText">—</strong>
+      </div>
+    </section>
+
     <section class="today" id="todayCard">
       <div class="metric">
         <span class="label">Productive</span>
@@ -32,9 +43,28 @@
       </div>
     </section>
 
+    <section class="pause" aria-label="Pause tracking">
+      <h2>Pause tracking</h2>
+      <p class="hint" id="pauseHint">Skip counting time briefly (e.g. research rabbit holes).</p>
+      <div class="pause-row">
+        <button type="button" class="ghost sm" data-pause="15">15m</button>
+        <button type="button" class="ghost sm" data-pause="30">30m</button>
+        <button type="button" class="ghost sm" data-pause="60">1h</button>
+        <button type="button" class="ghost sm" id="pauseClear">Clear</button>
+      </div>
+    </section>
+
     <section class="session">
       <h2>Study session</h2>
-      <p class="hint">Timer runs in the background while Chrome is your focused app.</p>
+      <p class="hint">Timer runs while Chrome is focused. Pomodoro sends optional system notifications.</p>
+      <label class="select-label" for="pomodoroPreset">Pomodoro</label>
+      <select id="pomodoroPreset" class="select">
+        <option value="">Off — open session</option>
+        <option value="25,5">25 / 5</option>
+        <option value="50,10">50 / 10</option>
+        <option value="90,15">90 / 15</option>
+      </select>
+      <p class="pomodoro-status" id="pomodoroStatus" hidden></p>
       <div class="session-row">
         <span id="sessionStatus" class="pill idle">No active session</span>
         <div class="btns">
@@ -45,6 +75,7 @@
     </section>
 
     <footer class="foot">
+      <button type="button" id="openOnboard" class="linkish">How it works</button>
       <button type="button" id="openOpts" class="linkish">Site lists</button>
     </footer>
 

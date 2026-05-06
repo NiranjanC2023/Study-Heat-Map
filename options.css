@@ -124,3 +124,63 @@ textarea:focus {
 .primary:hover {
   filter: brightness(1.05);
 }
+
+.primary:focus-visible {
+  outline: 2px solid rgba(234, 88, 12, 0.55);
+  outline-offset: 2px;
+}
+
+.prefs {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-bottom: 22px;
+  padding: 16px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  max-width: 70ch;
+}
+
+.inline {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--text);
+}
+
+.inline input {
+  max-width: 200px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: #0c0c0f;
+  color: var(--text);
+  font: inherit;
+}
+
+.inline input:focus-visible {
+  outline: 2px solid rgba(234, 88, 12, 0.45);
+  outline-offset: 1px;
+}
+
+.check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.check input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+  }
+}

@@ -1,0 +1,106 @@
+:root {
+  --bg: #0c0c0f;
+  --panel: #14141a;
+  --text: #eceae7;
+  --muted: #8b8794;
+  --accent: #ea580c;
+  --border: #2b2934;
+  font-family: "Segoe UI", system-ui, sans-serif;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.55;
+}
+
+.wrap {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 40px 24px 56px;
+}
+
+h1 {
+  margin: 0 0 12px;
+  font-size: 26px;
+  letter-spacing: -0.03em;
+}
+
+.lead {
+  margin: 0 0 20px;
+  color: var(--muted);
+  font-size: 16px;
+}
+
+.lead strong {
+  color: var(--text);
+}
+
+.list {
+  margin: 0 0 20px;
+  padding-left: 1.2rem;
+  color: var(--text);
+}
+
+.list li {
+  margin-bottom: 10px;
+}
+
+.list code {
+  background: var(--panel);
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 0.9em;
+}
+
+.privacy {
+  font-size: 14px;
+  color: var(--muted);
+  margin: 0 0 28px;
+}
+
+.privacy a {
+  color: var(--accent);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+
+.primary {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 10px 20px;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.primary:focus-visible,
+.ghost:focus-visible {
+  outline: 2px solid rgba(234, 88, 12, 0.55);
+  outline-offset: 2px;
+}
+
+.ghost {
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 18px;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+  }
+}

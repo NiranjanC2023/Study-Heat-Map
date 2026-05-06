@@ -1,98 +1,10 @@
-// src/lib/storageKeys.ts
-var STORAGE_KEYS = {
-  productiveHosts: "productiveHosts",
-  distractionHosts: "distractionHosts",
-  dailyBuckets: "dailyBuckets",
-  dailyByHost: "dailyByHost",
-  sessions: "sessions",
-  activeSessionId: "activeSessionId",
-  pauseUntil: "pauseUntil",
-  onboardingDone: "onboardingDone",
-  dailyGoalMinutes: "dailyGoalMinutes",
-  pomodoroNotify: "pomodoroNotify",
-  pomodoroState: "pomodoroState"
-};
+import { STORAGE_KEYS } from "./lib/storageKeys";
+import { todayKey } from "./lib/dates";
+import { classifyUrl, hostnameFromUrl, type SiteKind } from "./lib/classify";
+import { cutoffDateKey, filterOldDateKeys, RETENTION_DAYS } from "./lib/prune";
+import type { DailyRow, HostDayRow, PomodoroState, Pulse, Session } from "./lib/types";
 
-// src/lib/dates.ts
-function pad(n) {
-  return String(n).padStart(2, "0");
-}
-function todayKey(d = /* @__PURE__ */ new Date()) {
-  const y = d.getFullYear();
-  const m = pad(d.getMonth() + 1);
-  const day = pad(d.getDate());
-  return `${y}-${m}-${day}`;
-}
-
-// src/lib/classify.ts
-function normalizeHost(host) {
-  return host.toLowerCase().replace(/^www\./, "");
-}
-function hostnameFromUrl(url) {
-  try {
-    const u = new URL(url);
-    return normalizeHost(u.hostname);
-  } catch {
-    return "";
-  }
-}
-function parseRule(line) {
-  const s = line.trim().toLowerCase().replace(/^www\./, "");
-  if (!s) return { host: "", pathPrefix: null };
-  const slash = s.indexOf("/");
-  if (slash === -1) return { host: s, pathPrefix: null };
-  return { host: s.slice(0, slash), pathPrefix: s.slice(slash) };
-}
-function hostMatchesRuleHost(h, ruleHost) {
-  if (!ruleHost) return false;
-  return h === ruleHost || h.endsWith("." + ruleHost);
-}
-function ruleMatchesUrl(url, ruleLine) {
-  try {
-    const u = new URL(url);
-    const h = normalizeHost(u.hostname);
-    const { host, pathPrefix } = parseRule(ruleLine);
-    if (!host) return false;
-    if (!hostMatchesRuleHost(h, host)) return false;
-    if (pathPrefix == null) return true;
-    return u.pathname.startsWith(pathPrefix);
-  } catch {
-    return false;
-  }
-}
-function classifyUrl(url, productiveRules, distractionRules) {
-  if (!url || url.startsWith("chrome://") || url.startsWith("edge://")) return "neutral";
-  try {
-    new URL(url);
-  } catch {
-    return "neutral";
-  }
-  for (const r of productiveRules) {
-    if (ruleMatchesUrl(url, r)) return "productive";
-  }
-  for (const r of distractionRules) {
-    if (ruleMatchesUrl(url, r)) return "distraction";
-  }
-  return "neutral";
-}
-
-// src/lib/prune.ts
-var RETENTION_DAYS = 800;
-function filterOldDateKeys(keys, cutoffKey) {
-  return keys.filter((k) => k >= cutoffKey);
-}
-function cutoffDateKey(anchor, days) {
-  const d = new Date(anchor);
-  d.setHours(0, 0, 0, 0);
-  d.setDate(d.getDate() - days);
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
-}
-
-// src/background.ts
-var DEFAULT_PRODUCTIVE = [
+const DEFAULT_PRODUCTIVE = [
   "github.com",
   "stackoverflow.com",
   "stackexchange.com",
@@ -101,9 +13,10 @@ var DEFAULT_PRODUCTIVE = [
   "notion.so",
   "wikipedia.org",
   "scholar.google.com",
-  "arxiv.org"
+  "arxiv.org",
 ];
-var DEFAULT_DISTRACTION = [
+
+const DEFAULT_DISTRACTION = [
   "youtube.com",
   "twitter.com",
   "x.com",
@@ -112,25 +25,30 @@ var DEFAULT_DISTRACTION = [
   "reddit.com",
   "tiktok.com",
   "netflix.com",
-  "twitch.tv"
+  "twitch.tv",
 ];
-var ALARM_HEARTBEAT = "heartbeat";
-var ALARM_POMODORO = "pomodoro-phase";
-var META_LAST_PRUNE = "_studyHeatmapLastPrune";
-var DEFAULT_GOAL_MINUTES = 120;
-var pulse = null;
-var studyAnchorTs = Date.now();
-async function isPaused() {
+
+const ALARM_HEARTBEAT = "heartbeat";
+const ALARM_POMODORO = "pomodoro-phase";
+const META_LAST_PRUNE = "_studyHeatmapLastPrune";
+
+const DEFAULT_GOAL_MINUTES = 120;
+
+let pulse: Pulse | null = null;
+let studyAnchorTs = Date.now();
+
+async function isPaused(): Promise<boolean> {
   const { [STORAGE_KEYS.pauseUntil]: until } = await chrome.storage.local.get(STORAGE_KEYS.pauseUntil);
   return typeof until === "number" && Date.now() < until;
 }
-async function getLists() {
+
+async function getLists(): Promise<{ productive: string[]; distraction: string[] }> {
   const data = await chrome.storage.local.get([
     STORAGE_KEYS.productiveHosts,
-    STORAGE_KEYS.distractionHosts
+    STORAGE_KEYS.distractionHosts,
   ]);
-  let productive = data[STORAGE_KEYS.productiveHosts];
-  let distraction = data[STORAGE_KEYS.distractionHosts];
+  let productive = data[STORAGE_KEYS.productiveHosts] as string[] | undefined;
+  let distraction = data[STORAGE_KEYS.distractionHosts] as string[] | undefined;
   if (!Array.isArray(productive) || productive.length === 0) {
     productive = [...DEFAULT_PRODUCTIVE];
     await chrome.storage.local.set({ [STORAGE_KEYS.productiveHosts]: productive });
@@ -141,62 +59,67 @@ async function getLists() {
   }
   return { productive, distraction };
 }
-async function addSeconds(kind, seconds, host) {
+
+async function addSeconds(kind: SiteKind, seconds: number, host: string): Promise<void> {
   if (seconds <= 0) return;
   if (await isPaused()) return;
   const day = todayKey();
   const key = STORAGE_KEYS.dailyBuckets;
   const data = await chrome.storage.local.get(key);
-  const buckets = data[key] || {};
-  const row = buckets[day] || {
+  const buckets = (data[key] as Record<string, DailyRow>) || {};
+  const row: DailyRow = buckets[day] || {
     productive: 0,
     distraction: 0,
     neutral: 0,
-    study: 0
+    study: 0,
   };
   row[kind] = (row[kind] || 0) + seconds;
   buckets[day] = row;
   await chrome.storage.local.set({ [key]: buckets });
+
   if (host) {
     const hk = STORAGE_KEYS.dailyByHost;
     const hdata = await chrome.storage.local.get(hk);
-    const tree = hdata[hk] || {};
+    const tree = (hdata[hk] as Record<string, Record<string, HostDayRow>>) || {};
     const dayRow = tree[day] || {};
-    const hr = dayRow[host] || { productive: 0, distraction: 0, neutral: 0 };
+    const hr: HostDayRow = dayRow[host] || { productive: 0, distraction: 0, neutral: 0 };
     hr[kind] = (hr[kind] || 0) + seconds;
     dayRow[host] = hr;
     tree[day] = dayRow;
     await chrome.storage.local.set({ [hk]: tree });
   }
 }
-async function addStudyOverlay(seconds) {
+
+async function addStudyOverlay(seconds: number): Promise<void> {
   if (seconds <= 0) return;
   if (await isPaused()) return;
   const day = todayKey();
   const key = STORAGE_KEYS.dailyBuckets;
   const data = await chrome.storage.local.get(key);
-  const buckets = data[key] || {};
-  const row = buckets[day] || {
+  const buckets = (data[key] as Record<string, DailyRow>) || {};
+  const row: DailyRow = buckets[day] || {
     productive: 0,
     distraction: 0,
     neutral: 0,
-    study: 0
+    study: 0,
   };
   row.study = (row.study || 0) + seconds;
   buckets[day] = row;
   await chrome.storage.local.set({ [key]: buckets });
 }
-async function flushPulse() {
+
+async function flushPulse(): Promise<void> {
   if (!pulse) return;
   const now = Date.now();
-  const deltaSec = Math.min(3600, Math.max(0, (now - pulse.ts) / 1e3));
+  const deltaSec = Math.min(3600, Math.max(0, (now - pulse.ts) / 1000));
   if (deltaSec > 0.5) {
     const host = hostnameFromUrl(pulse.url);
     await addSeconds(pulse.kind, deltaSec, host);
   }
   pulse.ts = now;
 }
-async function adoptTab(tab) {
+
+async function adoptTab(tab: chrome.tabs.Tab): Promise<void> {
   const { productive, distraction } = await getLists();
   await flushPulse();
   if (!tab.id || !tab.url || tab.url.startsWith("chrome://") || tab.url.startsWith("edge://")) {
@@ -206,58 +129,64 @@ async function adoptTab(tab) {
   const kind = classifyUrl(tab.url, productive, distraction);
   pulse = { ts: Date.now(), url: tab.url, kind, tabId: tab.id };
 }
-async function refreshActiveTab() {
+
+async function refreshActiveTab(): Promise<void> {
   const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
   if (tab) await adoptTab(tab);
   else pulse = null;
 }
-async function maybePrune() {
+
+async function maybePrune(): Promise<void> {
   const d = todayKey();
   const meta = await chrome.storage.local.get(META_LAST_PRUNE);
   if (meta[META_LAST_PRUNE] === d) return;
-  const cutoff = cutoffDateKey(/* @__PURE__ */ new Date(), RETENTION_DAYS);
+  const cutoff = cutoffDateKey(new Date(), RETENTION_DAYS);
   const bk = STORAGE_KEYS.dailyBuckets;
-  const buckets = (await chrome.storage.local.get(bk))[bk] || {};
-  const next = {};
+  const buckets = ((await chrome.storage.local.get(bk))[bk] as Record<string, DailyRow>) || {};
+  const next: Record<string, DailyRow> = {};
   for (const key of filterOldDateKeys(Object.keys(buckets), cutoff)) {
     next[key] = buckets[key];
   }
   const hk = STORAGE_KEYS.dailyByHost;
-  const hosts = (await chrome.storage.local.get(hk))[hk] || {};
-  const nextH = {};
+  const hosts = ((await chrome.storage.local.get(hk))[hk] as Record<string, Record<string, HostDayRow>>) || {};
+  const nextH: Record<string, Record<string, HostDayRow>> = {};
   for (const key of filterOldDateKeys(Object.keys(hosts), cutoff)) {
     nextH[key] = hosts[key];
   }
   await chrome.storage.local.set({
     [bk]: next,
     [hk]: nextH,
-    [META_LAST_PRUNE]: d
+    [META_LAST_PRUNE]: d,
   });
 }
-async function schedulePomodoroAlarm(delayMs) {
+
+async function schedulePomodoroAlarm(delayMs: number): Promise<void> {
   await chrome.alarms.clear(ALARM_POMODORO);
-  const when = Date.now() + Math.max(1e3, delayMs);
+  const when = Date.now() + Math.max(1000, delayMs);
   chrome.alarms.create(ALARM_POMODORO, { when });
 }
-async function clearPomodoro() {
+
+async function clearPomodoro(): Promise<void> {
   await chrome.alarms.clear(ALARM_POMODORO);
   await chrome.storage.local.remove(STORAGE_KEYS.pomodoroState);
 }
-async function startPomodoro(sessionId, workMin, breakMin) {
+
+async function startPomodoro(sessionId: string, workMin: number, breakMin: number): Promise<void> {
   const workSec = Math.max(1, workMin) * 60;
   const breakSec = Math.max(1, breakMin) * 60;
-  const state = { sessionId, workSec, breakSec, isWork: true };
+  const state: PomodoroState = { sessionId, workSec, breakSec, isWork: true };
   await chrome.storage.local.set({ [STORAGE_KEYS.pomodoroState]: state });
-  await schedulePomodoroAlarm(workSec * 1e3);
+  await schedulePomodoroAlarm(workSec * 1000);
 }
-async function onPomodoroAlarm() {
+
+async function onPomodoroAlarm(): Promise<void> {
   const data = await chrome.storage.local.get([
     STORAGE_KEYS.pomodoroState,
     STORAGE_KEYS.activeSessionId,
-    STORAGE_KEYS.pomodoroNotify
+    STORAGE_KEYS.pomodoroNotify,
   ]);
-  const st = data[STORAGE_KEYS.pomodoroState];
-  const active = data[STORAGE_KEYS.activeSessionId];
+  const st = data[STORAGE_KEYS.pomodoroState] as PomodoroState | undefined;
+  const active = data[STORAGE_KEYS.activeSessionId] as string | null | undefined;
   const notify = data[STORAGE_KEYS.pomodoroNotify] !== false;
   if (!st || !active || st.sessionId !== active) {
     await clearPomodoro();
@@ -271,14 +200,15 @@ async function onPomodoroAlarm() {
           type: "basic",
           iconUrl: icon,
           title: "Study Heatmap",
-          message: "Break time \u2014 short rest before the next focus block."
+          message: "Break time — short rest before the next focus block.",
         });
       } catch {
+        /* optional permission */
       }
     }
-    const next = { ...st, isWork: false };
+    const next: PomodoroState = { ...st, isWork: false };
     await chrome.storage.local.set({ [STORAGE_KEYS.pomodoroState]: next });
-    await schedulePomodoroAlarm(next.breakSec * 1e3);
+    await schedulePomodoroAlarm(next.breakSec * 1000);
   } else {
     if (notify) {
       try {
@@ -286,16 +216,18 @@ async function onPomodoroAlarm() {
           type: "basic",
           iconUrl: icon,
           title: "Study Heatmap",
-          message: "Focus block \u2014 time for the next work session."
+          message: "Focus block — time for the next work session.",
         });
       } catch {
+        /* optional */
       }
     }
-    const next = { ...st, isWork: true };
+    const next: PomodoroState = { ...st, isWork: true };
     await chrome.storage.local.set({ [STORAGE_KEYS.pomodoroState]: next });
-    await schedulePomodoroAlarm(next.workSec * 1e3);
+    await schedulePomodoroAlarm(next.workSec * 1000);
   }
 }
+
 chrome.runtime.onInstalled.addListener(async (details) => {
   await getLists();
   const goalData = await chrome.storage.local.get(STORAGE_KEYS.dailyGoalMinutes);
@@ -312,22 +244,28 @@ chrome.runtime.onInstalled.addListener(async (details) => {
     }
   }
 });
+
 chrome.runtime.onStartup.addListener(async () => {
   chrome.alarms.create(ALARM_HEARTBEAT, { periodInMinutes: 1 });
   await refreshActiveTab();
 });
+
 chrome.alarms.onAlarm.addListener(async (a) => {
   if (a.name === ALARM_POMODORO) {
     await onPomodoroAlarm();
     return;
   }
   if (a.name !== ALARM_HEARTBEAT) return;
+
   await maybePrune();
+
   const now = Date.now();
   const idleState = await chrome.idle.queryState(60);
-  const sid = (await chrome.storage.local.get(STORAGE_KEYS.activeSessionId))[STORAGE_KEYS.activeSessionId];
-  if (sid && idleState === "active" && !await isPaused()) {
-    const ds = Math.min(120, Math.max(0, (now - studyAnchorTs) / 1e3));
+  const sid = (await chrome.storage.local.get(STORAGE_KEYS.activeSessionId))[
+    STORAGE_KEYS.activeSessionId
+  ] as string | null | undefined;
+  if (sid && idleState === "active" && !(await isPaused())) {
+    const ds = Math.min(120, Math.max(0, (now - studyAnchorTs) / 1000));
     if (ds >= 30) await addStudyOverlay(ds);
     studyAnchorTs = now;
   } else {
@@ -340,15 +278,18 @@ chrome.alarms.onAlarm.addListener(async (a) => {
   }
   if (pulse) await flushPulse();
 });
+
 chrome.tabs.onActivated.addListener(async () => {
   await refreshActiveTab();
 });
+
 chrome.tabs.onUpdated.addListener(async (tabId, info, tab) => {
   if (info.status === "complete" || info.url) {
     const [active] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
     if (active?.id === tabId) await adoptTab(tab);
   }
 });
+
 chrome.windows.onFocusChanged.addListener(async (winId) => {
   if (winId === chrome.windows.WINDOW_ID_NONE) {
     await flushPulse();
@@ -358,6 +299,7 @@ chrome.windows.onFocusChanged.addListener(async (winId) => {
   }
   await refreshActiveTab();
 });
+
 chrome.idle.onStateChanged.addListener(async (state) => {
   if (state !== "active") {
     await flushPulse();
@@ -368,29 +310,33 @@ chrome.idle.onStateChanged.addListener(async (state) => {
     await refreshActiveTab();
   }
 });
+
 chrome.idle.setDetectionInterval(60);
+
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   void (async () => {
     if (msg?.type === "START_SESSION") {
       const data = await chrome.storage.local.get(STORAGE_KEYS.sessions);
-      const sessions = data[STORAGE_KEYS.sessions] || [];
+      const sessions = (data[STORAGE_KEYS.sessions] as Session[]) || [];
       const id = `${Date.now()}`;
       const start = Date.now();
-      const label = msg.label || "Study";
-      const workMin = msg.pomodoro?.workMin;
-      const breakMin = msg.pomodoro?.breakMin;
-      const s = {
+      const label = (msg.label as string) || "Study";
+      const workMin = msg.pomodoro?.workMin as number | undefined;
+      const breakMin = msg.pomodoro?.breakMin as number | undefined;
+      const s: Session = {
         id,
         start,
         end: null,
         label,
-        ...workMin != null && breakMin != null ? { pomodoroWorkMin: workMin, pomodoroBreakMin: breakMin } : {}
+        ...(workMin != null && breakMin != null
+          ? { pomodoroWorkMin: workMin, pomodoroBreakMin: breakMin }
+          : {}),
       };
       sessions.push(s);
       studyAnchorTs = Date.now();
       await chrome.storage.local.set({
         [STORAGE_KEYS.sessions]: sessions,
-        [STORAGE_KEYS.activeSessionId]: id
+        [STORAGE_KEYS.activeSessionId]: id,
       });
       if (workMin != null && breakMin != null) {
         await startPomodoro(id, workMin, breakMin);
@@ -401,26 +347,26 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     } else if (msg?.type === "STOP_SESSION") {
       const data = await chrome.storage.local.get([
         STORAGE_KEYS.sessions,
-        STORAGE_KEYS.activeSessionId
+        STORAGE_KEYS.activeSessionId,
       ]);
-      let sessions = data[STORAGE_KEYS.sessions] || [];
-      const activeId = data[STORAGE_KEYS.activeSessionId];
+      let sessions = (data[STORAGE_KEYS.sessions] as Session[]) || [];
+      const activeId = data[STORAGE_KEYS.activeSessionId] as string | null | undefined;
       const s = sessions.find((x) => x.id === activeId);
       if (s) {
         s.end = Date.now();
-        const note = msg.note;
+        const note = msg.note as string | undefined;
         if (note && note.trim()) s.note = note.trim();
       }
       if (sessions.length > 400) sessions = sessions.slice(-400);
       await clearPomodoro();
       await chrome.storage.local.set({
         [STORAGE_KEYS.sessions]: sessions,
-        [STORAGE_KEYS.activeSessionId]: null
+        [STORAGE_KEYS.activeSessionId]: null,
       });
       sendResponse({ ok: true });
     } else if (msg?.type === "PAUSE_TRACKING") {
       const minutes = Math.max(1, Math.min(480, Number(msg.minutes) || 15));
-      const until = Date.now() + minutes * 60 * 1e3;
+      const until = Date.now() + minutes * 60 * 1000;
       await flushPulse();
       await chrome.storage.local.set({ [STORAGE_KEYS.pauseUntil]: until });
       sendResponse({ ok: true, until });
@@ -438,7 +384,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
         STORAGE_KEYS.pauseUntil,
         STORAGE_KEYS.dailyGoalMinutes,
         STORAGE_KEYS.pomodoroState,
-        STORAGE_KEYS.pomodoroNotify
+        STORAGE_KEYS.pomodoroNotify,
       ];
       const snap = await chrome.storage.local.get(keys);
       sendResponse(snap);

@@ -10,15 +10,27 @@
       <header class="hero">
         <div>
           <h1>Study Heatmap</h1>
-          <p class="tagline">Focus trends, productivity mix, and weekly study reports.</p>
+          <p class="tagline">Focus trends, productivity mix, exports, and week-over-week summaries.</p>
         </div>
-        <button type="button" id="reload" class="ghost">Refresh</button>
+        <div class="hero-actions">
+          <button type="button" id="exportJson" class="ghost">JSON</button>
+          <button type="button" id="exportCsv" class="ghost">CSV</button>
+          <button type="button" id="reload" class="ghost">Refresh</button>
+        </div>
       </header>
 
       <section class="card">
         <div class="card-head">
+          <h2>Week over week</h2>
+          <p class="desc">This ISO week vs the seven days before (productive &amp; distraction time).</p>
+        </div>
+        <div id="wow" class="wow"></div>
+      </section>
+
+      <section class="card">
+        <div class="card-head">
           <h2>Productive time heatmap</h2>
-          <p class="desc">Each cell is a day; depth follows productive browsing (tracked hosts).</p>
+          <p class="desc">Each cell is a day; depth follows productive browsing (rules you configured).</p>
         </div>
         <div class="heatmap-wrap">
           <div class="dow" aria-hidden="true">
@@ -52,6 +64,14 @@
           </div>
           <canvas id="line" width="640" height="260"></canvas>
         </div>
+      </section>
+
+      <section class="card">
+        <div class="card-head">
+          <h2>Top distractions (7 days)</h2>
+          <p class="desc">Hosts where distraction time stacked up (by your distraction rules).</p>
+        </div>
+        <div id="topHosts" class="table-wrap"></div>
       </section>
 
       <section class="card report">

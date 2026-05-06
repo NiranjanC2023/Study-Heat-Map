@@ -1,65 +1,17 @@
-// src/lib/storageKeys.ts
-var STORAGE_KEYS = {
-  productiveHosts: "productiveHosts",
-  distractionHosts: "distractionHosts",
-  dailyBuckets: "dailyBuckets",
-  dailyByHost: "dailyByHost",
-  sessions: "sessions",
-  activeSessionId: "activeSessionId",
-  pauseUntil: "pauseUntil",
-  onboardingDone: "onboardingDone",
-  dailyGoalMinutes: "dailyGoalMinutes",
-  pomodoroNotify: "pomodoroNotify",
-  pomodoroState: "pomodoroState"
-};
+import { STORAGE_KEYS } from "./lib/storageKeys";
+import { todayKey, weekLabel, keyFromDate, mondayOf } from "./lib/dates";
+import type { DailyRow, HostDayRow, Session } from "./lib/types";
 
-// src/lib/dates.ts
-function pad(n) {
-  return String(n).padStart(2, "0");
-}
-function todayKey(d = /* @__PURE__ */ new Date()) {
-  const y = d.getFullYear();
-  const m = pad(d.getMonth() + 1);
-  const day = pad(d.getDate());
-  return `${y}-${m}-${day}`;
-}
-function keyFromDate(d) {
-  const x = new Date(d);
-  x.setHours(0, 0, 0, 0);
-  return todayKey(x);
-}
-function isoWeekNumber(dateKey) {
-  const [y, m, d] = dateKey.split("-").map(Number);
-  const date = new Date(y, m - 1, d);
-  const day = (date.getDay() + 6) % 7;
-  date.setDate(date.getDate() - day + 3);
-  const firstThu = new Date(date.getFullYear(), 0, 4);
-  return 1 + Math.round(
-    ((date.getTime() - firstThu.getTime()) / 864e5 - 3 + (firstThu.getDay() + 6) % 7) / 7
-  );
-}
-function weekLabel(dateKey) {
-  const [y] = dateKey.split("-").map(Number);
-  const w = isoWeekNumber(dateKey);
-  return `${y}-W${String(w).padStart(2, "0")}`;
-}
-function mondayOf(d) {
-  const x = new Date(d);
-  x.setHours(0, 0, 0, 0);
-  const day = (x.getDay() + 6) % 7;
-  x.setDate(x.getDate() - day);
-  return x;
-}
+const HEATMAP_WEEKS = 18;
 
-// src/dashboard.ts
-var HEATMAP_WEEKS = 18;
-function fmtHours(sec) {
+function fmtHours(sec: number): string {
   const h = sec / 3600;
   if (h >= 10) return `${h.toFixed(1)}h`;
   if (h >= 1) return `${h.toFixed(1)}h`;
   return `${Math.round(sec / 60)}m`;
 }
-function levelForProductive(sec, maxSec) {
+
+function levelForProductive(sec: number, maxSec: number): number {
   if (!maxSec || sec <= 0) return 0;
   const r = sec / maxSec;
   if (r < 0.15) return 1;
@@ -67,7 +19,12 @@ function levelForProductive(sec, maxSec) {
   if (r < 0.6) return 3;
   return 4;
 }
-function drawStackedWeeks(canvas, weeks, labels) {
+
+function drawStackedWeeks(
+  canvas: HTMLCanvasElement,
+  weeks: { productive: number; distraction: number }[],
+  labels: string[]
+): void {
   const ctx = canvas.getContext("2d");
   if (!ctx) return;
   const w = canvas.width;
@@ -85,11 +42,12 @@ function drawStackedWeeks(canvas, weeks, labels) {
   for (const x of weeks) {
     maxH = Math.max(maxH, x.productive + x.distraction);
   }
+
   weeks.forEach((wk, i) => {
     const x0 = padL + i * (barW + gap);
     const total = wk.productive + wk.distraction;
-    const hp = wk.productive / maxH * chartH;
-    const hd = wk.distraction / maxH * chartH;
+    const hp = (wk.productive / maxH) * chartH;
+    const hd = (wk.distraction / maxH) * chartH;
     const yBase = padT + chartH;
     ctx.fillStyle = "rgba(225, 29, 72, 0.85)";
     ctx.fillRect(x0, yBase - hd, barW, hd);
@@ -104,12 +62,17 @@ function drawStackedWeeks(canvas, weeks, labels) {
     ctx.textAlign = "center";
     ctx.fillText(labels[i], x0 + barW / 2, yBase + 18);
   });
+
   ctx.textAlign = "left";
   ctx.fillStyle = "#71717a";
   ctx.font = "11px system-ui";
   ctx.fillText("Hours", 8, padT + 10);
 }
-function drawLineFocus(canvas, points) {
+
+function drawLineFocus(
+  canvas: HTMLCanvasElement,
+  points: { ratio: number; hasData: boolean; label: string }[]
+): void {
   const ctx = canvas.getContext("2d");
   if (!ctx) return;
   const w = canvas.width;
@@ -123,30 +86,33 @@ function drawLineFocus(canvas, points) {
   const min = 0;
   const max = 100;
   const n = points.length;
+
   ctx.strokeStyle = "#27272a";
   ctx.lineWidth = 1;
   for (let i = 0; i <= 4; i++) {
-    const y = padT + ch * i / 4;
+    const y = padT + (ch * i) / 4;
     ctx.beginPath();
     ctx.moveTo(padL, y);
     ctx.lineTo(padL + cw, y);
     ctx.stroke();
-    const v = max - (max - min) * i / 4;
+    const v = max - ((max - min) * i) / 4;
     ctx.fillStyle = "#71717a";
     ctx.font = "10px system-ui";
     ctx.fillText(`${Math.round(v)}%`, 6, y + 3);
   }
+
   const usable = points.filter((p) => p.hasData);
   if (usable.length < 2) {
     ctx.fillStyle = "#a1a1aa";
     ctx.font = "12px system-ui";
     ctx.fillText(
-      "Not enough data yet \u2014 browse on classified sites, then refresh.",
+      "Not enough data yet — browse on classified sites, then refresh.",
       padL,
       padT + ch / 2
     );
     return;
   }
+
   const step = cw / (n - 1);
   ctx.strokeStyle = "rgba(234, 88, 12, 0.95)";
   ctx.lineWidth = 2;
@@ -158,38 +124,43 @@ function drawLineFocus(canvas, points) {
       return;
     }
     const x = padL + i * step;
-    const y = padT + ch - (p.ratio - min) / (max - min) * ch;
+    const y = padT + ch - ((p.ratio - min) / (max - min)) * ch;
     if (!started) {
       ctx.moveTo(x, y);
       started = true;
     } else ctx.lineTo(x, y);
   });
   ctx.stroke();
+
   ctx.fillStyle = "rgba(234, 88, 12, 0.95)";
   points.forEach((p, i) => {
     if (!p.hasData) return;
     const x = padL + i * step;
-    const y = padT + ch - (p.ratio - min) / (max - min) * ch;
+    const y = padT + ch - ((p.ratio - min) / (max - min)) * ch;
     ctx.beginPath();
     ctx.arc(x, y, 3, 0, Math.PI * 2);
     ctx.fill();
   });
+
   ctx.fillStyle = "#71717a";
   ctx.font = "10px system-ui";
   ctx.textAlign = "center";
   ctx.fillText(points[0].label, padL, padT + ch + 18);
   ctx.fillText(points[n - 1].label, padL + cw, padT + ch + 18);
 }
-async function loadData() {
-  return chrome.runtime.sendMessage({ type: "GET_SNAPSHOT" });
+
+async function loadData(): Promise<Record<string, unknown>> {
+  return chrome.runtime.sendMessage({ type: "GET_SNAPSHOT" }) as Promise<Record<string, unknown>>;
 }
-function renderHeatmap(root, buckets) {
+
+function renderHeatmap(root: HTMLElement, buckets: Record<string, DailyRow>): void {
   root.replaceChildren();
-  const today = /* @__PURE__ */ new Date();
+  const today = new Date();
   today.setHours(0, 0, 0, 0);
   const todayKeyStr = keyFromDate(today);
   const start = mondayOf(today);
   start.setDate(start.getDate() - (HEATMAP_WEEKS - 1) * 7);
+
   let maxP = 1;
   for (let c = 0; c < HEATMAP_WEEKS; c++) {
     for (let r = 0; r < 7; r++) {
@@ -200,6 +171,7 @@ function renderHeatmap(root, buckets) {
       if (row?.productive) maxP = Math.max(maxP, row.productive);
     }
   }
+
   for (let c = 0; c < HEATMAP_WEEKS; c++) {
     const col = document.createElement("div");
     col.className = "week";
@@ -220,25 +192,29 @@ function renderHeatmap(root, buckets) {
           "rgba(22, 163, 74, 0.28)",
           "rgba(22, 163, 74, 0.45)",
           "rgba(22, 163, 74, 0.68)",
-          "rgba(22, 163, 74, 0.95)"
+          "rgba(22, 163, 74, 0.95)",
         ][lvl];
       }
-      const dateStr = d.toLocaleDateString(void 0, {
+      const dateStr = d.toLocaleDateString(undefined, {
         weekday: "short",
         month: "short",
-        day: "numeric"
+        day: "numeric",
       });
-      cell.title = `${dateStr} \xB7 productive ${fmtHours(p)}`;
+      cell.title = `${dateStr} · productive ${fmtHours(p)}`;
       col.appendChild(cell);
     }
     root.appendChild(col);
   }
 }
-function aggregateRollingWeeks(buckets, numWeeks) {
-  const today = /* @__PURE__ */ new Date();
+
+function aggregateRollingWeeks(
+  buckets: Record<string, DailyRow>,
+  numWeeks: number
+): { series: { productive: number; distraction: number; study: number }[]; labels: string[] } {
+  const today = new Date();
   const startMonday = mondayOf(today);
-  const out = [];
-  const labels = [];
+  const out: { productive: number; distraction: number; study: number }[] = [];
+  const labels: string[] = [];
   for (let i = numWeeks - 1; i >= 0; i--) {
     const m = new Date(startMonday);
     m.setDate(m.getDate() - i * 7);
@@ -260,10 +236,14 @@ function aggregateRollingWeeks(buckets, numWeeks) {
   }
   return { series: out, labels };
 }
-function focusSeriesLastDays(buckets, days) {
-  const today = /* @__PURE__ */ new Date();
+
+function focusSeriesLastDays(
+  buckets: Record<string, DailyRow>,
+  days: number
+): { k: string; ratio: number; hasData: boolean; label: string }[] {
+  const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const pts = [];
+  const pts: { k: string; ratio: number; hasData: boolean; label: string }[] = [];
   for (let i = days - 1; i >= 0; i--) {
     const d = new Date(today);
     d.setDate(d.getDate() - i);
@@ -273,8 +253,8 @@ function focusSeriesLastDays(buckets, days) {
     const x = row.distraction || 0;
     const t = p + x;
     const hasData = t >= 120;
-    const ratio2 = hasData ? Math.round(100 * p / t) : 0;
-    pts.push({ k, ratio: ratio2, hasData, label: "" });
+    const ratio = hasData ? Math.round((100 * p) / t) : 0;
+    pts.push({ k, ratio, hasData, label: "" });
   }
   if (pts.length) {
     pts[0].label = "Today";
@@ -282,7 +262,11 @@ function focusSeriesLastDays(buckets, days) {
   }
   return pts;
 }
-function sumWeek(startMonday, buckets) {
+
+function sumWeek(startMonday: Date, buckets: Record<string, DailyRow>): {
+  productive: number;
+  distraction: number;
+} {
   let productive = 0;
   let distraction = 0;
   for (let i = 0; i < 7; i++) {
@@ -295,17 +279,20 @@ function sumWeek(startMonday, buckets) {
   }
   return { productive, distraction };
 }
-function ratio(p, d) {
-  return p + d >= 120 ? Math.round(100 * p / (p + d)) : null;
+
+function ratio(p: number, d: number): number | null {
+  return p + d >= 120 ? Math.round((100 * p) / (p + d)) : null;
 }
-function pctDelta(cur, prev) {
+
+function pctDelta(cur: number, prev: number): string {
   if (prev === 0 && cur === 0) return "0%";
-  if (prev === 0) return "+\u221E";
-  const x = Math.round((cur - prev) / prev * 100);
+  if (prev === 0) return "+∞";
+  const x = Math.round(((cur - prev) / prev) * 100);
   return `${x > 0 ? "+" : ""}${x}%`;
 }
-function renderWow(el, buckets) {
-  const thisM = mondayOf(/* @__PURE__ */ new Date());
+
+function renderWow(el: HTMLElement, buckets: Record<string, DailyRow>): void {
+  const thisM = mondayOf(new Date());
   const lastM = new Date(thisM);
   lastM.setDate(lastM.getDate() - 7);
   const cur = sumWeek(thisM, buckets);
@@ -316,6 +303,7 @@ function renderWow(el, buckets) {
   const distDelta = pctDelta(cur.distraction, prev.distraction);
   const prodCls = cur.productive >= prev.productive ? "delta-pos" : "delta-neg";
   const distCls = cur.distraction <= prev.distraction ? "delta-pos" : "delta-neg";
+
   let ratioBlurb = "Not enough classified time yet this week.";
   if (rCur != null && rPrev != null) {
     const dr = rCur - rPrev;
@@ -323,6 +311,7 @@ function renderWow(el, buckets) {
   } else if (rCur != null) {
     ratioBlurb = `Focus ratio this week: ${rCur}%.`;
   }
+
   el.innerHTML = `
     <div class="tile">
       <h3>Productive</h3>
@@ -338,8 +327,14 @@ function renderWow(el, buckets) {
     </div>
   `;
 }
-function topDistractionHosts(byHost, endDate, numDays, topN) {
-  const map = /* @__PURE__ */ new Map();
+
+function topDistractionHosts(
+  byHost: Record<string, Record<string, HostDayRow>> | undefined,
+  endDate: Date,
+  numDays: number,
+  topN: number
+): { host: string; sec: number }[] {
+  const map = new Map<string, number>();
   const t = new Date(endDate);
   t.setHours(0, 0, 0, 0);
   for (let i = 0; i < numDays; i++) {
@@ -352,10 +347,15 @@ function topDistractionHosts(byHost, endDate, numDays, topN) {
       map.set(h, (map.get(h) || 0) + (hr.distraction || 0));
     }
   }
-  return [...map.entries()].filter(([, sec]) => sec >= 60).sort((a, b) => b[1] - a[1]).slice(0, topN).map(([host, sec]) => ({ host, sec }));
+  return [...map.entries()]
+    .filter(([, sec]) => sec >= 60)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, topN)
+    .map(([host, sec]) => ({ host, sec }));
 }
-function renderTopHosts(root, byHost) {
-  const rows = topDistractionHosts(byHost, /* @__PURE__ */ new Date(), 7, 12);
+
+function renderTopHosts(root: HTMLElement, byHost: Record<string, Record<string, HostDayRow>> | undefined): void {
+  const rows = topDistractionHosts(byHost, new Date(), 7, 12);
   if (!rows.length) {
     root.innerHTML = `<p class="muted">No distraction time recorded in the last seven days.</p>`;
     return;
@@ -364,17 +364,30 @@ function renderTopHosts(root, byHost) {
     <table class="hosts" aria-label="Top distraction hosts">
       <thead><tr><th>Host</th><th class="num">Time</th></tr></thead>
       <tbody>
-        ${rows.map(
-    (r) => `<tr><td><code>${escapeHtml(r.host)}</code></td><td class="num">${fmtHours(r.sec)}</td></tr>`
-  ).join("")}
+        ${rows
+          .map(
+            (r) =>
+              `<tr><td><code>${escapeHtml(r.host)}</code></td><td class="num">${fmtHours(r.sec)}</td></tr>`
+          )
+          .join("")}
       </tbody>
     </table>
   `;
 }
-function escapeHtml(s) {
-  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
 }
-function renderWeekly(container, buckets, sessions) {
+
+function renderWeekly(
+  container: HTMLElement,
+  buckets: Record<string, DailyRow>,
+  sessions: Session[]
+): void {
   const wk = weekLabel(todayKey());
   let productive = 0;
   let distraction = 0;
@@ -385,30 +398,41 @@ function renderWeekly(container, buckets, sessions) {
     distraction += row.distraction || 0;
     study += row.study || 0;
   }
+
   const weekSessions = (sessions || []).filter((s) => {
     const t = s.start;
     return weekLabel(keyFromDate(new Date(t))) === wk;
   });
   const completed = weekSessions.filter((s) => s.end);
-  const avgMin = completed.length === 0 ? 0 : Math.round(
-    completed.reduce((a, s) => a + (s.end - s.start) / 6e4, 0) / completed.length
-  );
-  const r = productive + distraction >= 120 ? Math.round(100 * productive / (productive + distraction)) : null;
+  const avgMin =
+    completed.length === 0
+      ? 0
+      : Math.round(
+          completed.reduce((a, s) => a + ((s.end as number) - s.start) / 60000, 0) / completed.length
+        );
+
+  const r =
+    productive + distraction >= 120
+      ? Math.round((100 * productive) / (productive + distraction))
+      : null;
+
   const notes = completed.filter((s) => s.note).slice(-3);
+
   container.innerHTML = `
     <div class="stat good"><div class="k">Productive</div><div class="v">${fmtHours(productive)}</div></div>
     <div class="stat bad"><div class="k">Distraction</div><div class="v">${fmtHours(distraction)}</div></div>
     <div class="stat"><div class="k">Study timer</div><div class="v">${fmtHours(study)}</div></div>
-    <div class="stat"><div class="k">Focus ratio</div><div class="v">${r == null ? "\u2014" : r + "%"}</div></div>
+    <div class="stat"><div class="k">Focus ratio</div><div class="v">${r == null ? "—" : r + "%"}</div></div>
     <div class="stat"><div class="k">Sessions (week)</div><div class="v">${weekSessions.length}</div></div>
-    <div class="stat"><div class="k">Avg session</div><div class="v">${avgMin ? avgMin + " min" : "\u2014"}</div></div>
+    <div class="stat"><div class="k">Avg session</div><div class="v">${avgMin ? avgMin + " min" : "—"}</div></div>
     <div class="stat note">
       Week <strong>${wk}</strong>. Study timer accrues during active sessions while Chrome is focused; site totals use your rules.
-      ${notes.length ? `<br /><br />Recent notes: ${notes.map((s) => `<em>${escapeHtml(s.note || "")}</em>`).join(" \xB7 ")}` : ""}
+      ${notes.length ? `<br /><br />Recent notes: ${notes.map((s) => `<em>${escapeHtml(s.note || "")}</em>`).join(" · ")}` : ""}
     </div>
   `;
 }
-function downloadText(filename, text, mime) {
+
+function downloadText(filename: string, text: string, mime: string): void {
   const blob = new Blob([text], { type: mime });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
@@ -417,7 +441,8 @@ function downloadText(filename, text, mime) {
   a.click();
   URL.revokeObjectURL(url);
 }
-function toCsv(buckets) {
+
+function toCsv(buckets: Record<string, DailyRow>): string {
   const keys = Object.keys(buckets).sort();
   const lines = ["date,productive_sec,distraction_sec,neutral_sec,study_sec"];
   for (const k of keys) {
@@ -428,32 +453,39 @@ function toCsv(buckets) {
   }
   return lines.join("\n");
 }
-async function render() {
+
+async function render(): Promise<void> {
   const snap = await loadData();
-  const buckets = snap[STORAGE_KEYS.dailyBuckets] || {};
-  const byHost = snap[STORAGE_KEYS.dailyByHost];
-  const sessions = snap[STORAGE_KEYS.sessions] || [];
-  renderWow(document.getElementById("wow"), buckets);
-  renderHeatmap(document.getElementById("heatmap"), buckets);
+  const buckets = (snap[STORAGE_KEYS.dailyBuckets] as Record<string, DailyRow>) || {};
+  const byHost = snap[STORAGE_KEYS.dailyByHost] as Record<string, Record<string, HostDayRow>> | undefined;
+  const sessions = (snap[STORAGE_KEYS.sessions] as Session[]) || [];
+
+  renderWow(document.getElementById("wow")!, buckets);
+  renderHeatmap(document.getElementById("heatmap")!, buckets);
+
   const { series, labels } = aggregateRollingWeeks(buckets, 8);
   const weeksForChart = series.map((s) => ({
     productive: s.productive / 3600,
-    distraction: s.distraction / 3600
+    distraction: s.distraction / 3600,
   }));
-  drawStackedWeeks(document.getElementById("bars"), weeksForChart, labels);
+  drawStackedWeeks(document.getElementById("bars") as HTMLCanvasElement, weeksForChart, labels);
+
   const pts = focusSeriesLastDays(buckets, 30);
-  drawLineFocus(document.getElementById("line"), pts);
-  renderTopHosts(document.getElementById("topHosts"), byHost);
-  renderWeekly(document.getElementById("weekly"), buckets, sessions);
+  drawLineFocus(document.getElementById("line") as HTMLCanvasElement, pts);
+
+  renderTopHosts(document.getElementById("topHosts")!, byHost);
+  renderWeekly(document.getElementById("weekly")!, buckets, sessions);
+
   const exportPayload = async () => {
     const s = await loadData();
     return {
-      exportedAt: (/* @__PURE__ */ new Date()).toISOString(),
+      exportedAt: new Date().toISOString(),
       version: 1,
-      ...s
+      ...s,
     };
   };
-  document.getElementById("exportJson").onclick = async () => {
+
+  document.getElementById("exportJson")!.onclick = async () => {
     const data = await exportPayload();
     downloadText(
       `study-heatmap-${todayKey()}.json`,
@@ -461,9 +493,11 @@ async function render() {
       "application/json"
     );
   };
-  document.getElementById("exportCsv").onclick = () => {
+
+  document.getElementById("exportCsv")!.onclick = () => {
     downloadText(`study-heatmap-daily-${todayKey()}.csv`, toCsv(buckets), "text/csv");
   };
 }
-document.getElementById("reload").addEventListener("click", () => void render());
+
+document.getElementById("reload")!.addEventListener("click", () => void render());
 void render();

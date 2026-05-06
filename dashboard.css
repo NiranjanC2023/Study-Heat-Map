@@ -10,6 +10,16 @@
   font-family: "Segoe UI", system-ui, sans-serif;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
 body {
   margin: 0;
   background: radial-gradient(1200px 600px at 10% -10%, rgba(234, 88, 12, 0.12), transparent),
@@ -30,6 +40,13 @@ body {
   justify-content: space-between;
   gap: 16px;
   margin-bottom: 22px;
+  flex-wrap: wrap;
+}
+
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .hero h1 {
@@ -56,6 +73,11 @@ body {
 
 .ghost:hover {
   border-color: #3f3f46;
+}
+
+.ghost:focus-visible {
+  outline: 2px solid rgba(234, 88, 12, 0.55);
+  outline-offset: 2px;
 }
 
 .card {
@@ -217,4 +239,78 @@ canvas {
   font-size: 13px;
   color: var(--muted);
   line-height: 1.5;
+}
+
+.wow {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.wow .tile {
+  background: #18181f;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px;
+}
+
+.wow .tile h3 {
+  margin: 0 0 6px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  font-weight: 650;
+}
+
+.wow .tile p {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.45;
+}
+
+.wow .delta-pos {
+  color: var(--green);
+}
+
+.wow .delta-neg {
+  color: var(--rose);
+}
+
+.table-wrap {
+  margin-top: 12px;
+  overflow-x: auto;
+}
+
+table.hosts {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+table.hosts th,
+table.hosts td {
+  text-align: left;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+table.hosts th {
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+table.hosts td.num {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.muted {
+  color: var(--muted);
+  font-size: 13px;
+  margin: 0;
 }

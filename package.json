@@ -1,0 +1,17 @@
+{
+  "name": "study-heatmap-extension",
+  "private": true,
+  "version": "1.1.0",
+  "description": "Study Heatmap Chrome extension",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "test": "vitest run",
+    "check": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.0.268",
+    "esbuild": "^0.24.0",
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.4"
+  }
+}

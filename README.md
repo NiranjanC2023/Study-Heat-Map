@@ -1,18 +1,31 @@
 # Study Heatmap
 
-Chrome extension (Manifest V3) that tracks time on **productive** vs **distraction** sites, records **study sessions**, and shows **focus trends**, **productivity charts**, and **weekly reports**.
+Chrome extension (Manifest V3) that tracks time on **productive** vs **distraction** sites (including **path rules**), **pause** windows, **daily goals & streaks**, **Pomodoro** study sessions with optional notifications, **exports**, and dashboards (**week-over-week**, **top distractions**, heatmaps, charts). **Data stays local** — see `PRIVACY.md`.
 
 ## Install (development)
 
 1. Clone this repo.
-2. Open `chrome://extensions`, enable **Developer mode**.
-3. Click **Load unpacked** and select the project folder.
+2. Install dependencies and compile TypeScript (required after you change `src/`):
+   ```bash
+   npm install
+   npm run build
+   ```
+3. Open `chrome://extensions`, enable **Developer mode**.
+4. Click **Load unpacked** and select the project folder (repo root). The checked-in `*.js` bundles are updated whenever you run `npm run build`.
 
 ## Usage
 
-- **Popup**: today’s stats, focus ratio, start/stop study session, link to the dashboard.
-- **Options** (Site lists): one hostname per line for productive and distraction sites.
-- **Dashboard**: full-page heatmap, weekly mix chart, 30-day focus trend, ISO week summary.
+- **Popup**: goal & streak, pause tracking, Pomodoro presets, session start/stop (optional note), dashboard link.
+- **Options**: productive/distraction rules (`host` or `host/path`), daily goal (minutes), Pomodoro notifications toggle.
+- **Dashboard**: heatmap, charts, week-over-week summary, top distraction hosts (7d), JSON/CSV export, weekly report.
+- **Onboarding**: opens once on install; reopen from the popup (“How it works”).
+
+## Development
+
+```bash
+npm test        # vitest unit tests (classification, streak, prune)
+npm run check   # TypeScript noEmit
+```
 
 ## Permissions
 
