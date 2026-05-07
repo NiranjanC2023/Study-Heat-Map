@@ -16,25 +16,35 @@
         </p>
       </header>
 
-      <section class="prefs">
+      <section class="prefs" aria-label="Goals and notifications">
         <label class="inline">
           <span>Daily productive goal (minutes)</span>
-          <input type="number" id="dailyGoal" min="1" max="1440" step="1" />
+          <input type="number" id="dailyGoal" min="1" max="1440" step="1" aria-describedby="dailyHint" />
+          <span id="dailyHint" class="field-hint">Streak uses this target.</span>
+        </label>
+        <label class="inline">
+          <span>Weekly productive goal (minutes)</span>
+          <input type="number" id="weeklyGoal" min="1" max="10080" step="1" aria-describedby="weeklyHint" />
+          <span id="weeklyHint" class="field-hint">Shown in the popup and weekly report (ISO week).</span>
         </label>
         <label class="check">
-          <input type="checkbox" id="pomodoroNotify" />
+          <input type="checkbox" id="pomodoroNotify" aria-describedby="notifyHint" />
           <span>Pomodoro phase notifications (system banner)</span>
         </label>
+        <p id="notifyHint" class="field-hint">
+          Chrome will prompt for the <strong>notifications</strong> permission when you save with this on.
+        </p>
+        <p id="notifyWarn" class="warn" hidden role="status"></p>
       </section>
 
       <div class="cols">
         <label class="field">
           <span class="title productive">Productive</span>
-          <textarea id="productive" rows="14" spellcheck="false" placeholder="github.com&#10;youtube.com/playlist"></textarea>
+          <textarea id="productive" rows="14" spellcheck="false" placeholder="github.com&#10;youtube.com/playlist" title="One rule per line"></textarea>
         </label>
         <label class="field">
           <span class="title distraction">Distraction</span>
-          <textarea id="distraction" rows="14" spellcheck="false" placeholder="youtube.com&#10;reddit.com/r/memes"></textarea>
+          <textarea id="distraction" rows="14" spellcheck="false" placeholder="youtube.com&#10;reddit.com/r/memes" title="One rule per line"></textarea>
         </label>
       </div>
 

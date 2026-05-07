@@ -11,6 +11,7 @@
         <div>
           <h1>Study Heatmap</h1>
           <p class="tagline">Focus trends, productivity mix, exports, and week-over-week summaries.</p>
+          <p id="dashError" class="dash-error" role="alert" hidden></p>
         </div>
         <div class="hero-actions">
           <button type="button" id="exportJson" class="ghost">JSON</button>
@@ -52,6 +53,23 @@
       <section class="grid2">
         <div class="card">
           <div class="card-head">
+            <h2>Top productive (7 days)</h2>
+            <p class="desc">Hosts where productive time stacked up (by your productive rules).</p>
+          </div>
+          <div id="topProd" class="table-wrap"></div>
+        </div>
+        <div class="card">
+          <div class="card-head">
+            <h2>Top distractions (7 days)</h2>
+            <p class="desc">Hosts where distraction time stacked up (by your distraction rules).</p>
+          </div>
+          <div id="topHosts" class="table-wrap"></div>
+        </div>
+      </section>
+
+      <section class="grid2">
+        <div class="card">
+          <div class="card-head">
             <h2>Weekly productivity mix</h2>
             <p class="desc">Productive vs distraction hours (last 8 weeks).</p>
           </div>
@@ -68,10 +86,10 @@
 
       <section class="card">
         <div class="card-head">
-          <h2>Top distractions (7 days)</h2>
-          <p class="desc">Hosts where distraction time stacked up (by your distraction rules).</p>
+          <h2>Recent study sessions</h2>
+          <p class="desc">Last 14 days, newest first (wall-clock session timer).</p>
         </div>
-        <div id="topHosts" class="table-wrap"></div>
+        <div id="sessionTimeline" class="table-wrap"></div>
       </section>
 
       <section class="card report">

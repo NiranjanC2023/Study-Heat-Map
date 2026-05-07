@@ -26,4 +26,9 @@ describe("classifyUrl", () => {
   it("returns neutral for internal browser URLs", () => {
     expect(classifyUrl("chrome://version", ["version"], [])).toBe("neutral");
   });
+
+  it("treats file and blob URLs as neutral", () => {
+    expect(classifyUrl("file:///Users/me/paper.pdf", ["me"], [])).toBe("neutral");
+    expect(classifyUrl("blob:https://example.com/uuid", ["example.com"], [])).toBe("neutral");
+  });
 });

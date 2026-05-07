@@ -9,6 +9,7 @@ var STORAGE_KEYS = {
   pauseUntil: "pauseUntil",
   onboardingDone: "onboardingDone",
   dailyGoalMinutes: "dailyGoalMinutes",
+  weeklyGoalMinutes: "weeklyGoalMinutes",
   pomodoroNotify: "pomodoroNotify",
   pomodoroState: "pomodoroState"
 };
@@ -61,7 +62,14 @@ function ruleMatchesUrl(url, ruleLine) {
   }
 }
 function classifyUrl(url, productiveRules, distractionRules) {
-  if (!url || url.startsWith("chrome://") || url.startsWith("edge://")) return "neutral";
+  if (!url) return "neutral";
+  const u = url.toLowerCase();
+  if (u.startsWith("chrome://") || u.startsWith("edge://") || u.startsWith("about:") || u.startsWith("devtools:") || u.startsWith("chrome-extension:") || u.startsWith("moz-extension:") || u.startsWith("brave://")) {
+    return "neutral";
+  }
+  if (u.startsWith("file:") || u.startsWith("blob:") || u.startsWith("data:")) {
+    return "neutral";
+  }
   try {
     new URL(url);
   } catch {
@@ -118,8 +126,38 @@ var ALARM_HEARTBEAT = "heartbeat";
 var ALARM_POMODORO = "pomodoro-phase";
 var META_LAST_PRUNE = "_studyHeatmapLastPrune";
 var DEFAULT_GOAL_MINUTES = 120;
+var DEFAULT_WEEKLY_GOAL_MINUTES = 600;
 var pulse = null;
 var studyAnchorTs = Date.now();
+async function updateActionBadge() {
+  try {
+    const day = todayKey();
+    const data = await chrome.storage.local.get(STORAGE_KEYS.dailyBuckets);
+    const buckets = data[STORAGE_KEYS.dailyBuckets] || {};
+    const row = buckets[day];
+    const p = row?.productive ?? 0;
+    const d = row?.distraction ?? 0;
+    if (p + d < 60) {
+      const mins = Math.floor(p / 60);
+      chrome.action.setBadgeText({ text: mins > 0 ? String(Math.min(mins, 999)) : "" });
+      chrome.action.setBadgeBackgroundColor({ color: mins > 0 ? "#16a34a" : "#27272a" });
+      await chrome.action.setTitle({
+        title: mins > 0 ? `Study Heatmap \xB7 ${mins}m productive today` : "Study Heatmap"
+      });
+      return;
+    }
+    const r = Math.round(100 * p / (p + d));
+    const text = String(Math.min(r, 999));
+    chrome.action.setBadgeText({ text });
+    chrome.action.setBadgeBackgroundColor({
+      color: r >= 55 ? "#16a34a" : r >= 40 ? "#52525b" : "#e11d48"
+    });
+    await chrome.action.setTitle({
+      title: `Study Heatmap \xB7 ${r}% focus today`
+    });
+  } catch {
+  }
+}
 async function isPaused() {
   const { [STORAGE_KEYS.pauseUntil]: until } = await chrome.storage.local.get(STORAGE_KEYS.pauseUntil);
   return typeof until === "number" && Date.now() < until;
@@ -157,6 +195,7 @@ async function addSeconds(kind, seconds, host) {
   row[kind] = (row[kind] || 0) + seconds;
   buckets[day] = row;
   await chrome.storage.local.set({ [key]: buckets });
+  void updateActionBadge();
   if (host) {
     const hk = STORAGE_KEYS.dailyByHost;
     const hdata = await chrome.storage.local.get(hk);
@@ -185,6 +224,7 @@ async function addStudyOverlay(seconds) {
   row.study = (row.study || 0) + seconds;
   buckets[day] = row;
   await chrome.storage.local.set({ [key]: buckets });
+  void updateActionBadge();
 }
 async function flushPulse() {
   if (!pulse) return;
@@ -199,7 +239,7 @@ async function flushPulse() {
 async function adoptTab(tab) {
   const { productive, distraction } = await getLists();
   await flushPulse();
-  if (!tab.id || !tab.url || tab.url.startsWith("chrome://") || tab.url.startsWith("edge://")) {
+  if (!tab.id || !tab.url || tab.url.startsWith("chrome://") || tab.url.startsWith("edge://") || tab.url.startsWith("devtools:") || tab.url.startsWith("chrome-extension:") || tab.url.startsWith("about:")) {
     pulse = null;
     return;
   }
@@ -259,13 +299,14 @@ async function onPomodoroAlarm() {
   const st = data[STORAGE_KEYS.pomodoroState];
   const active = data[STORAGE_KEYS.activeSessionId];
   const notify = data[STORAGE_KEYS.pomodoroNotify] !== false;
+  const canNotify = notify && await chrome.permissions.contains({ permissions: ["notifications"] });
   if (!st || !active || st.sessionId !== active) {
     await clearPomodoro();
     return;
   }
   const icon = chrome.runtime.getURL("icons/icon128.png");
   if (st.isWork) {
-    if (notify) {
+    if (canNotify) {
       try {
         await chrome.notifications.create({
           type: "basic",
@@ -280,7 +321,7 @@ async function onPomodoroAlarm() {
     await chrome.storage.local.set({ [STORAGE_KEYS.pomodoroState]: next });
     await schedulePomodoroAlarm(next.breakSec * 1e3);
   } else {
-    if (notify) {
+    if (canNotify) {
       try {
         await chrome.notifications.create({
           type: "basic",
@@ -298,12 +339,21 @@ async function onPomodoroAlarm() {
 }
 chrome.runtime.onInstalled.addListener(async (details) => {
   await getLists();
-  const goalData = await chrome.storage.local.get(STORAGE_KEYS.dailyGoalMinutes);
+  const goalData = await chrome.storage.local.get([
+    STORAGE_KEYS.dailyGoalMinutes,
+    STORAGE_KEYS.weeklyGoalMinutes
+  ]);
   if (typeof goalData[STORAGE_KEYS.dailyGoalMinutes] !== "number") {
     await chrome.storage.local.set({ [STORAGE_KEYS.dailyGoalMinutes]: DEFAULT_GOAL_MINUTES });
   }
+  if (typeof goalData[STORAGE_KEYS.weeklyGoalMinutes] !== "number") {
+    await chrome.storage.local.set({
+      [STORAGE_KEYS.weeklyGoalMinutes]: DEFAULT_WEEKLY_GOAL_MINUTES
+    });
+  }
   chrome.alarms.create(ALARM_HEARTBEAT, { periodInMinutes: 1 });
   await refreshActiveTab();
+  void updateActionBadge();
   if (details.reason === "install") {
     const done = await chrome.storage.local.get(STORAGE_KEYS.onboardingDone);
     if (!done[STORAGE_KEYS.onboardingDone]) {
@@ -315,6 +365,7 @@ chrome.runtime.onInstalled.addListener(async (details) => {
 chrome.runtime.onStartup.addListener(async () => {
   chrome.alarms.create(ALARM_HEARTBEAT, { periodInMinutes: 1 });
   await refreshActiveTab();
+  void updateActionBadge();
 });
 chrome.alarms.onAlarm.addListener(async (a) => {
   if (a.name === ALARM_POMODORO) {
@@ -339,6 +390,25 @@ chrome.alarms.onAlarm.addListener(async (a) => {
     return;
   }
   if (pulse) await flushPulse();
+  void updateActionBadge();
+});
+async function handleSpaNavigation(tabId, url) {
+  if (url == null) return;
+  const [active] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+  if (active?.id !== tabId) return;
+  try {
+    const tab = await chrome.tabs.get(tabId);
+    await adoptTab(tab);
+  } catch {
+  }
+}
+chrome.webNavigation.onHistoryStateUpdated.addListener((d) => {
+  if (d.frameId !== 0) return;
+  void handleSpaNavigation(d.tabId, d.url);
+});
+chrome.webNavigation.onReferenceFragmentUpdated.addListener((d) => {
+  if (d.frameId !== 0) return;
+  void handleSpaNavigation(d.tabId, d.url);
 });
 chrome.tabs.onActivated.addListener(async () => {
   await refreshActiveTab();
@@ -450,11 +520,30 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
         STORAGE_KEYS.distractionHosts,
         STORAGE_KEYS.pauseUntil,
         STORAGE_KEYS.dailyGoalMinutes,
+        STORAGE_KEYS.weeklyGoalMinutes,
         STORAGE_KEYS.pomodoroState,
         STORAGE_KEYS.pomodoroNotify
       ];
       const snap = await chrome.storage.local.get(keys);
+      void updateActionBadge();
       sendResponse(snap);
+    } else if (msg?.type === "ADD_HOST_RULE") {
+      const list = msg.list;
+      const raw = msg.host?.trim().toLowerCase().replace(/^www\./, "") ?? "";
+      const host = raw.split("/")[0] ?? "";
+      if (!host || list !== "productive" && list !== "distraction") {
+        sendResponse({ ok: false, error: "invalid" });
+        return;
+      }
+      const key = list === "productive" ? STORAGE_KEYS.productiveHosts : STORAGE_KEYS.distractionHosts;
+      const data = await chrome.storage.local.get(key);
+      const arr = (data[key] || []).slice();
+      if (!arr.includes(host)) {
+        arr.push(host);
+        arr.sort();
+        await chrome.storage.local.set({ [key]: arr });
+      }
+      sendResponse({ ok: true });
     } else if (msg?.type === "COMPLETE_ONBOARDING") {
       await chrome.storage.local.set({ [STORAGE_KEYS.onboardingDone]: true });
       sendResponse({ ok: true });

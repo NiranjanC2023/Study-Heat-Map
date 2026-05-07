@@ -9,6 +9,7 @@ var STORAGE_KEYS = {
   pauseUntil: "pauseUntil",
   onboardingDone: "onboardingDone",
   dailyGoalMinutes: "dailyGoalMinutes",
+  weeklyGoalMinutes: "weeklyGoalMinutes",
   pomodoroNotify: "pomodoroNotify",
   pomodoroState: "pomodoroState"
 };
@@ -49,6 +50,22 @@ function mondayOf(d) {
   const day = (x.getDay() + 6) % 7;
   x.setDate(x.getDate() - day);
   return x;
+}
+
+// src/lib/weekly.ts
+function productiveSecondsThisIsoWeek(buckets, weekMonday) {
+  let s = 0;
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(weekMonday);
+    d.setDate(d.getDate() + i);
+    s += buckets[keyFromDate(d)]?.productive ?? 0;
+  }
+  return s;
+}
+function weeklyGoalProgressPercent(productiveSec, goalMinutes) {
+  if (goalMinutes <= 0) return 0;
+  const g = goalMinutes * 60;
+  return Math.min(100, Math.round(100 * productiveSec / g));
 }
 
 // src/dashboard.ts
@@ -181,7 +198,11 @@ function drawLineFocus(canvas, points) {
   ctx.fillText(points[n - 1].label, padL + cw, padT + ch + 18);
 }
 async function loadData() {
-  return chrome.runtime.sendMessage({ type: "GET_SNAPSHOT" });
+  try {
+    return await chrome.runtime.sendMessage({ type: "GET_SNAPSHOT" });
+  } catch {
+    throw new Error("Could not load data from the extension background.");
+  }
 }
 function renderHeatmap(root, buckets) {
   root.replaceChildren();
@@ -338,7 +359,7 @@ function renderWow(el, buckets) {
     </div>
   `;
 }
-function topDistractionHosts(byHost, endDate, numDays, topN) {
+function topHostsForKind(byHost, endDate, numDays, topN, kind) {
   const map = /* @__PURE__ */ new Map();
   const t = new Date(endDate);
   t.setHours(0, 0, 0, 0);
@@ -349,20 +370,21 @@ function topDistractionHosts(byHost, endDate, numDays, topN) {
     const row = byHost?.[k];
     if (!row) continue;
     for (const [h, hr] of Object.entries(row)) {
-      map.set(h, (map.get(h) || 0) + (hr.distraction || 0));
+      map.set(h, (map.get(h) || 0) + (hr[kind] || 0));
     }
   }
   return [...map.entries()].filter(([, sec]) => sec >= 60).sort((a, b) => b[1] - a[1]).slice(0, topN).map(([host, sec]) => ({ host, sec }));
 }
-function renderTopHosts(root, byHost) {
-  const rows = topDistractionHosts(byHost, /* @__PURE__ */ new Date(), 7, 12);
+function renderHostLeaderboard(root, byHost, kind, ariaLabel, emptyMessage) {
+  const rows = topHostsForKind(byHost, /* @__PURE__ */ new Date(), 7, 12, kind);
   if (!rows.length) {
-    root.innerHTML = `<p class="muted">No distraction time recorded in the last seven days.</p>`;
+    root.innerHTML = `<p class="muted">${emptyMessage}</p>`;
     return;
   }
   root.innerHTML = `
-    <table class="hosts" aria-label="Top distraction hosts">
-      <thead><tr><th>Host</th><th class="num">Time</th></tr></thead>
+    <table class="hosts">
+      <caption class="sr-only">${ariaLabel}</caption>
+      <thead><tr><th scope="col">Host</th><th scope="col" class="num">Time</th></tr></thead>
       <tbody>
         ${rows.map(
     (r) => `<tr><td><code>${escapeHtml(r.host)}</code></td><td class="num">${fmtHours(r.sec)}</td></tr>`
@@ -374,7 +396,7 @@ function renderTopHosts(root, byHost) {
 function escapeHtml(s) {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
-function renderWeekly(container, buckets, sessions) {
+function renderWeekly(container, buckets, sessions, weeklyGoalMinutes) {
   const wk = weekLabel(todayKey());
   let productive = 0;
   let distraction = 0;
@@ -385,6 +407,9 @@ function renderWeekly(container, buckets, sessions) {
     distraction += row.distraction || 0;
     study += row.study || 0;
   }
+  const mon = mondayOf(/* @__PURE__ */ new Date());
+  const weekProdTracked = productiveSecondsThisIsoWeek(buckets, mon);
+  const weekGoalPct = weeklyGoalProgressPercent(weekProdTracked, weeklyGoalMinutes);
   const weekSessions = (sessions || []).filter((s) => {
     const t = s.start;
     return weekLabel(keyFromDate(new Date(t))) === wk;
@@ -400,12 +425,52 @@ function renderWeekly(container, buckets, sessions) {
     <div class="stat bad"><div class="k">Distraction</div><div class="v">${fmtHours(distraction)}</div></div>
     <div class="stat"><div class="k">Study timer</div><div class="v">${fmtHours(study)}</div></div>
     <div class="stat"><div class="k">Focus ratio</div><div class="v">${r == null ? "\u2014" : r + "%"}</div></div>
+    <div class="stat good"><div class="k">Weekly goal</div><div class="v">${fmtHours(weekProdTracked)} / ${weeklyGoalMinutes}m</div></div>
+    <div class="stat"><div class="k">Goal progress</div><div class="v">${weekGoalPct}%</div></div>
     <div class="stat"><div class="k">Sessions (week)</div><div class="v">${weekSessions.length}</div></div>
     <div class="stat"><div class="k">Avg session</div><div class="v">${avgMin ? avgMin + " min" : "\u2014"}</div></div>
     <div class="stat note">
       Week <strong>${wk}</strong>. Study timer accrues during active sessions while Chrome is focused; site totals use your rules.
       ${notes.length ? `<br /><br />Recent notes: ${notes.map((s) => `<em>${escapeHtml(s.note || "")}</em>`).join(" \xB7 ")}` : ""}
     </div>
+  `;
+}
+function renderSessionTimeline(root, sessions) {
+  const cutoff = Date.now() - 14 * 864e5;
+  const rows = sessions.filter((s) => s.start >= cutoff).sort((a, b) => b.start - a.start).slice(0, 35);
+  if (!rows.length) {
+    root.innerHTML = `<p class="muted">No sessions recorded in the last 14 days.</p>`;
+    return;
+  }
+  root.innerHTML = `
+    <table class="hosts">
+      <caption class="sr-only">Recent study sessions</caption>
+      <thead>
+        <tr>
+          <th scope="col">Start</th>
+          <th scope="col" class="num">Duration</th>
+          <th scope="col">Label</th>
+          <th scope="col">Note</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rows.map((s) => {
+    const start = new Date(s.start).toLocaleString(void 0, {
+      month: "short",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit"
+    });
+    const dur = s.end != null ? fmtHours(Math.max(0, (s.end - s.start) / 1e3)) : "\u2014";
+    return `<tr>
+              <td>${escapeHtml(start)}</td>
+              <td class="num">${dur}</td>
+              <td>${escapeHtml(s.label || "Session")}</td>
+              <td>${escapeHtml(s.note || "\u2014")}</td>
+            </tr>`;
+  }).join("")}
+      </tbody>
+    </table>
   `;
 }
 function downloadText(filename, text, mime) {
@@ -429,10 +494,21 @@ function toCsv(buckets) {
   return lines.join("\n");
 }
 async function render() {
-  const snap = await loadData();
+  const errEl = document.getElementById("dashError");
+  let snap;
+  try {
+    snap = await loadData();
+    errEl.hidden = true;
+    errEl.textContent = "";
+  } catch (e) {
+    errEl.hidden = false;
+    errEl.textContent = e instanceof Error ? e.message : "Could not load dashboard data.";
+    return;
+  }
   const buckets = snap[STORAGE_KEYS.dailyBuckets] || {};
   const byHost = snap[STORAGE_KEYS.dailyByHost];
   const sessions = snap[STORAGE_KEYS.sessions] || [];
+  const weeklyGoalMinutes = typeof snap[STORAGE_KEYS.weeklyGoalMinutes] === "number" ? snap[STORAGE_KEYS.weeklyGoalMinutes] : 600;
   renderWow(document.getElementById("wow"), buckets);
   renderHeatmap(document.getElementById("heatmap"), buckets);
   const { series, labels } = aggregateRollingWeeks(buckets, 8);
@@ -443,8 +519,22 @@ async function render() {
   drawStackedWeeks(document.getElementById("bars"), weeksForChart, labels);
   const pts = focusSeriesLastDays(buckets, 30);
   drawLineFocus(document.getElementById("line"), pts);
-  renderTopHosts(document.getElementById("topHosts"), byHost);
-  renderWeekly(document.getElementById("weekly"), buckets, sessions);
+  renderHostLeaderboard(
+    document.getElementById("topProd"),
+    byHost,
+    "productive",
+    "Top productive hosts in the last seven days",
+    "No productive time recorded in the last seven days."
+  );
+  renderHostLeaderboard(
+    document.getElementById("topHosts"),
+    byHost,
+    "distraction",
+    "Top distraction hosts in the last seven days",
+    "No distraction time recorded in the last seven days."
+  );
+  renderSessionTimeline(document.getElementById("sessionTimeline"), sessions);
+  renderWeekly(document.getElementById("weekly"), buckets, sessions, weeklyGoalMinutes);
   const exportPayload = async () => {
     const s = await loadData();
     return {

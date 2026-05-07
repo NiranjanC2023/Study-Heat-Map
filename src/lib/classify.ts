@@ -45,7 +45,23 @@ export function classifyUrl(
   productiveRules: string[],
   distractionRules: string[]
 ): SiteKind {
-  if (!url || url.startsWith("chrome://") || url.startsWith("edge://")) return "neutral";
+  if (!url) return "neutral";
+  const u = url.toLowerCase();
+  if (
+    u.startsWith("chrome://") ||
+    u.startsWith("edge://") ||
+    u.startsWith("about:") ||
+    u.startsWith("devtools:") ||
+    u.startsWith("chrome-extension:") ||
+    u.startsWith("moz-extension:") ||
+    u.startsWith("brave://")
+  ) {
+    return "neutral";
+  }
+  /** Local files & in-page URLs: time can accrue as neutral; rules rarely apply. */
+  if (u.startsWith("file:") || u.startsWith("blob:") || u.startsWith("data:")) {
+    return "neutral";
+  }
   try {
     new URL(url);
   } catch {

@@ -11,7 +11,7 @@ Study Heatmap is a browser extension that helps you understand how you spend tim
 - **Time spent** on sites you classify as productive, distracting, or neutral (based on the active tab in a focused Chrome window).
 - **Host-level aggregates** to power “top sites” style summaries.
 - **Study session** start/end times, optional notes, and optional Pomodoro settings.
-- **Settings** you configure (site rules, daily goal, notification preference).
+- **Settings** you configure (site rules, daily & weekly goals, notification preference).
 
 ## What the extension does not do
 
@@ -27,7 +27,8 @@ Study Heatmap is a browser extension that helps you understand how you spend tim
 | `tabs`                | Read the **active tab URL** to classify time; open the dashboard/onboarding. |
 | `alarms`              | Heartbeat for accruing time and Pomodoro phase reminders. |
 | `idle`                | Stop counting when the system/user is idle. |
-| `notifications`       | Optional Pomodoro phase alerts (can be disabled in settings). |
+| `webNavigation`       | Detect in-page URL changes (SPAs) on the active tab. |
+| `notifications`       | **Optional** — Pomodoro phase alerts only if you enable them and grant permission. |
 | `host_permissions`    | Access tab URLs for classification (required for URL-based rules in MV3). |
 
 ## Data retention

@@ -1,9 +1,10 @@
 {
   "manifest_version": 3,
   "name": "Study Heatmap",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Track productive sites, distractions, and study sessions — heatmaps, goals, Pomodoro, exports. Data stays local.",
-  "permissions": ["storage", "tabs", "alarms", "idle", "notifications"],
+  "permissions": ["storage", "tabs", "alarms", "idle", "webNavigation"],
+  "optional_permissions": ["notifications"],
   "host_permissions": ["<all_urls>"],
   "background": {
     "service_worker": "background.js",

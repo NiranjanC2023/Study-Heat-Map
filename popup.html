@@ -6,6 +6,8 @@
     <link rel="stylesheet" href="popup.css" />
   </head>
   <body>
+    <div id="errorBanner" class="error-banner" role="alert" hidden></div>
+
     <header class="top">
       <div class="brand">
         <span class="logo" aria-hidden="true"></span>
@@ -14,12 +16,12 @@
           <p class="sub">Today’s focus at a glance</p>
         </div>
       </div>
-      <button type="button" id="openDash" class="linkish" title="Full dashboard">Dashboard</button>
+      <button type="button" id="openDash" class="linkish" title="Open full dashboard">Dashboard</button>
     </header>
 
     <section class="goal-row" id="goalRow" aria-label="Daily goal and streak">
       <div class="goal-metric">
-        <span class="label">Goal</span>
+        <span class="label">Daily goal</span>
         <strong id="goalText">—</strong>
       </div>
       <div class="goal-metric">
@@ -28,7 +30,17 @@
       </div>
     </section>
 
-    <section class="today" id="todayCard">
+    <section class="week-bar" aria-label="Weekly productive progress">
+      <div class="week-bar-head">
+        <span class="label">This week (productive)</span>
+        <strong id="weekProgressText">—</strong>
+      </div>
+      <div class="progress-track" aria-hidden="true">
+        <div id="weekProgressFill" class="progress-fill"></div>
+      </div>
+    </section>
+
+    <section class="today" id="todayCard" aria-label="Today summary">
       <div class="metric">
         <span class="label">Productive</span>
         <strong id="todayProd">—</strong>
@@ -43,6 +55,15 @@
       </div>
     </section>
 
+    <section class="quick-add" aria-label="Add current site to lists">
+      <h2>Current tab</h2>
+      <p class="hint" id="currentHostHint">Adds the site hostname to your lists (then saves in Settings).</p>
+      <div class="quick-row">
+        <button type="button" id="addProd" class="ghost sm">Productive list</button>
+        <button type="button" id="addDist" class="ghost sm">Distraction list</button>
+      </div>
+    </section>
+
     <section class="pause" aria-label="Pause tracking">
       <h2>Pause tracking</h2>
       <p class="hint" id="pauseHint">Skip counting time briefly (e.g. research rabbit holes).</p>
@@ -54,11 +75,11 @@
       </div>
     </section>
 
-    <section class="session">
+    <section class="session" aria-label="Study session">
       <h2>Study session</h2>
-      <p class="hint">Timer runs while Chrome is focused. Pomodoro sends optional system notifications.</p>
+      <p class="hint">Timer runs while Chrome is focused. Pomodoro can use optional notifications (enable in Settings).</p>
       <label class="select-label" for="pomodoroPreset">Pomodoro</label>
-      <select id="pomodoroPreset" class="select">
+      <select id="pomodoroPreset" class="select" aria-label="Pomodoro preset">
         <option value="">Off — open session</option>
         <option value="25,5">25 / 5</option>
         <option value="50,10">50 / 10</option>
@@ -76,7 +97,7 @@
 
     <footer class="foot">
       <button type="button" id="openOnboard" class="linkish">How it works</button>
-      <button type="button" id="openOpts" class="linkish">Site lists</button>
+      <button type="button" id="openOpts" class="linkish">Settings</button>
     </footer>
 
     <script type="module" src="popup.js"></script>

@@ -18,18 +18,34 @@
       <ul class="list">
         <li>Only the <strong>active tab</strong> in your focused Chrome window counts.</li>
         <li>
-          Internal pages (<code>chrome://</code>) and time when Chrome is in the background or you’re
-          idle are not attributed to sites.
+          <strong>SPA sites</strong> (YouTube, Twitter/X, etc.) update via <code>webNavigation</code> when
+          the URL changes without a full page load.
+        </li>
+        <li>
+          <code>file://</code>, <code>blob:</code>, and <code>data:</code> URLs count as
+          <strong>neutral</strong> time (local files aren’t matched to your host rules).
+        </li>
+        <li>
+          Internal pages (<code>chrome://</code>, extensions) and time when Chrome is in the background
+          or you’re idle are not attributed to sites.
         </li>
         <li>Use <strong>path rules</strong> in settings (e.g. <code>youtube.com/playlist</code>) for finer control.</li>
+        <li>
+          <strong>Toolbar badge</strong> shows today’s focus % (or productive minutes) after enough classified time.
+        </li>
+        <li><strong>Quick add</strong> in the popup puts the current tab’s host on your productive or distraction list.</li>
+        <li><strong>Daily &amp; weekly goals</strong> and a <strong>session timeline</strong> live on the dashboard.</li>
         <li><strong>Pause tracking</strong> from the popup when you want a break from counting.</li>
+        <li>
+          <strong>Pomodoro notifications</strong> are optional — Chrome will ask when you enable them in Settings.
+        </li>
       </ul>
       <p class="privacy">
         Privacy summary: no accounts, no analytics server, no remote sync. Details are in
         <code>PRIVACY.md</code> in the GitHub repository.
       </p>
       <div class="actions">
-        <button type="button" id="openSettings" class="ghost">Site lists &amp; goal</button>
+        <button type="button" id="openSettings" class="ghost">Open settings</button>
         <button type="button" id="done" class="primary">Got it</button>
       </div>
     </main>

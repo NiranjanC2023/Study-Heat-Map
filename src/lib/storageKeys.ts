@@ -8,6 +8,7 @@ export const STORAGE_KEYS = {
   pauseUntil: "pauseUntil",
   onboardingDone: "onboardingDone",
   dailyGoalMinutes: "dailyGoalMinutes",
+  weeklyGoalMinutes: "weeklyGoalMinutes",
   pomodoroNotify: "pomodoroNotify",
   pomodoroState: "pomodoroState",
 } as const;
