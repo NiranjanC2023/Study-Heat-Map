@@ -159,4 +159,38 @@ document.getElementById("openOpts").addEventListener("click", () => {
 document.getElementById("openOnboard").addEventListener("click", () => {
   chrome.tabs.create({ url: chrome.runtime.getURL("onboarding.html") });
 });
+var WATCH_KEYS = /* @__PURE__ */ new Set([
+  STORAGE_KEYS.dailyBuckets,
+  STORAGE_KEYS.dailyByHost,
+  STORAGE_KEYS.pauseUntil,
+  STORAGE_KEYS.activeSessionId,
+  STORAGE_KEYS.pomodoroState,
+  STORAGE_KEYS.dailyGoalMinutes
+]);
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area !== "local") return;
+  if (Object.keys(changes).some((k) => WATCH_KEYS.has(k))) {
+    void refresh();
+  }
+});
+var pollId;
+function startPolling() {
+  if (pollId != null) return;
+  pollId = window.setInterval(() => void refresh(), 1e3);
+}
+function stopPolling() {
+  if (pollId != null) {
+    window.clearInterval(pollId);
+    pollId = void 0;
+  }
+}
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible") {
+    void refresh();
+    startPolling();
+  } else {
+    stopPolling();
+  }
+});
 void refresh();
+startPolling();

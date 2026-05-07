@@ -142,4 +142,44 @@ document.getElementById("openOnboard")!.addEventListener("click", () => {
   chrome.tabs.create({ url: chrome.runtime.getURL("onboarding.html") });
 });
 
+const WATCH_KEYS = new Set<string>([
+  STORAGE_KEYS.dailyBuckets,
+  STORAGE_KEYS.dailyByHost,
+  STORAGE_KEYS.pauseUntil,
+  STORAGE_KEYS.activeSessionId,
+  STORAGE_KEYS.pomodoroState,
+  STORAGE_KEYS.dailyGoalMinutes,
+]);
+
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area !== "local") return;
+  if (Object.keys(changes).some((k) => WATCH_KEYS.has(k))) {
+    void refresh();
+  }
+});
+
+let pollId: number | undefined;
+
+function startPolling(): void {
+  if (pollId != null) return;
+  pollId = window.setInterval(() => void refresh(), 1000);
+}
+
+function stopPolling(): void {
+  if (pollId != null) {
+    window.clearInterval(pollId);
+    pollId = undefined;
+  }
+}
+
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible") {
+    void refresh();
+    startPolling();
+  } else {
+    stopPolling();
+  }
+});
+
 void refresh();
+startPolling();

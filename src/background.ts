@@ -374,6 +374,21 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
       await chrome.storage.local.remove(STORAGE_KEYS.pauseUntil);
       sendResponse({ ok: true });
     } else if (msg?.type === "GET_SNAPSHOT") {
+      const idleState = await chrome.idle.queryState(60);
+      if (idleState === "active") {
+        if (pulse) await flushPulse();
+        const sid = (await chrome.storage.local.get(STORAGE_KEYS.activeSessionId))[
+          STORAGE_KEYS.activeSessionId
+        ] as string | null | undefined;
+        if (sid && !(await isPaused())) {
+          const now = Date.now();
+          const ds = Math.min(120, Math.max(0, (now - studyAnchorTs) / 1000));
+          if (ds >= 1) {
+            await addStudyOverlay(ds);
+            studyAnchorTs = now;
+          }
+        }
+      }
       const keys = [
         STORAGE_KEYS.dailyBuckets,
         STORAGE_KEYS.dailyByHost,
