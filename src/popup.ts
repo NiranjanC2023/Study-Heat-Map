@@ -105,6 +105,56 @@ async function refresh(): Promise<void> {
     } else {
       pauseHint.textContent = "Skip counting time briefly (e.g. research rabbit holes).";
     }
+    // Update Focus Mode status
+    const focusModeEnabled = snap[STORAGE_KEYS.focusModeEnabled] === true;
+    const focusToggle = document.getElementById("focusModeToggle") as HTMLInputElement;
+    focusToggle.checked = focusModeEnabled;
+    
+    const focusStatus = document.getElementById("focusStatus")!;
+    if (focusModeEnabled) {
+      focusStatus.textContent = "Active";
+      focusStatus.className = "status-pill active";
+      focusStatus.hidden = false;
+    } else {
+      focusStatus.hidden = true;
+    }
+
+    // Update tab lock status for current tab
+    const [currentTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    const lockBtn = document.getElementById("lockTabBtn") as HTMLButtonElement;
+    const lockStatus = document.getElementById("lockStatus")!;
+    if (currentTab?.id) {
+      try {
+        const lockResponse = await chrome.runtime.sendMessage({
+          type: "CHECK_TAB_LOCKED",
+        });
+        const isLocked = lockResponse?.locked === true;
+        lockBtn.textContent = isLocked ? "Unlock Current Tab" : "Lock Current Tab";
+        if (isLocked) {
+          lockStatus.textContent = "Locked";
+          lockStatus.className = "status-pill locked";
+          lockStatus.hidden = false;
+        } else {
+          lockStatus.hidden = true;
+        }
+      } catch {
+        lockStatus.hidden = true;
+      }
+    }
+
+    // Update Deep Focus status
+    const deepFocusEnabled = snap[STORAGE_KEYS.deepFocusEnabled] === true;
+    const deepFocusToggle = document.getElementById("deepFocusToggle") as HTMLInputElement;
+    deepFocusToggle.checked = deepFocusEnabled;
+    
+    const deepFocusStatus = document.getElementById("deepFocusStatus")!;
+    if (deepFocusEnabled) {
+      deepFocusStatus.textContent = "Active";
+      deepFocusStatus.className = "status-pill active";
+      deepFocusStatus.hidden = false;
+    } else {
+      deepFocusStatus.hidden = true;
+    }
 
     const activeId = snap[STORAGE_KEYS.activeSessionId] as string | null | undefined;
     const pom = snap[STORAGE_KEYS.pomodoroState] as PomodoroState | undefined;
@@ -225,7 +275,63 @@ document.getElementById("pauseClear")!.addEventListener("click", async () => {
   }
   await refresh();
 });
+// Focus Mode toggle
+document.getElementById("focusModeToggle")!.addEventListener("change", async (e) => {
+  const checkbox = e.target as HTMLInputElement;
+  try {
+    await chrome.runtime.sendMessage({
+      type: "TOGGLE_FOCUS_MODE",
+      enabled: checkbox.checked,
+    });
+  } catch {
+    showError("Couldn't toggle Focus Mode.");
+    checkbox.checked = !checkbox.checked;
+    return;
+  }
+  await refresh();
+});
 
+// Tab Locking: Lock/Unlock current tab
+document.getElementById("lockTabBtn")!.addEventListener("click", async () => {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (!tab?.id) {
+    showError("No active tab.");
+    return;
+  }
+  try {
+    const isLocked = await chrome.runtime.sendMessage({
+      type: "CHECK_TAB_LOCKED",
+    });
+    const response = await chrome.runtime.sendMessage({
+      type: isLocked.locked ? "UNLOCK_TAB" : "LOCK_TAB",
+      tabId: tab.id,
+    });
+    if (!response?.ok) {
+      showError("Couldn't toggle tab lock.");
+      return;
+    }
+    hideError();
+    await refresh();
+  } catch {
+    showError("Couldn't lock tab — is the extension enabled?");
+  }
+});
+
+// Deep Focus toggle
+document.getElementById("deepFocusToggle")!.addEventListener("change", async (e) => {
+  const checkbox = e.target as HTMLInputElement;
+  try {
+    await chrome.runtime.sendMessage({
+      type: "TOGGLE_DEEP_FOCUS",
+      enabled: checkbox.checked,
+    });
+  } catch {
+    showError("Couldn't toggle Deep Focus.");
+    checkbox.checked = !checkbox.checked;
+    return;
+  }
+  await refresh();
+});
 document.getElementById("openDash")!.addEventListener("click", () => {
   chrome.tabs.create({ url: chrome.runtime.getURL("dashboard.html") });
 });
@@ -246,6 +352,9 @@ const WATCH_KEYS = new Set<string>([
   STORAGE_KEYS.pomodoroState,
   STORAGE_KEYS.dailyGoalMinutes,
   STORAGE_KEYS.weeklyGoalMinutes,
+  STORAGE_KEYS.focusModeEnabled,
+  STORAGE_KEYS.lockedTabIds,
+  STORAGE_KEYS.deepFocusEnabled,
 ]);
 
 chrome.storage.onChanged.addListener((changes, area) => {

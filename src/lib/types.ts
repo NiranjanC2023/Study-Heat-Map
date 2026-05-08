@@ -36,3 +36,16 @@ export type Pulse = {
   kind: SiteKind;
   tabId: number;
 };
+
+export type FocusModeConfig = {
+  enabled: boolean;
+  blockedSites: string[];
+  overrideCooldownMs: number;
+  overrideDurationMs: number;
+  lastOverrideTime?: number;
+};
+
+export type TabLockState = {
+  lockedTabIds: number[];
+  deepFocusEnabled: boolean;
+};

@@ -11,7 +11,12 @@ var STORAGE_KEYS = {
   dailyGoalMinutes: "dailyGoalMinutes",
   weeklyGoalMinutes: "weeklyGoalMinutes",
   pomodoroNotify: "pomodoroNotify",
-  pomodoroState: "pomodoroState"
+  pomodoroState: "pomodoroState",
+  focusModeEnabled: "focusModeEnabled",
+  focusModeBlockedSites: "focusModeBlockedSites",
+  focusModeOverrideCooldownMs: "focusModeOverrideCooldownMs",
+  focusModeLastOverrideTime: "focusModeLastOverrideTime",
+  focusModeOverrideDuration: "focusModeOverrideDuration"
 };
 
 // src/lib/dates.ts
@@ -341,7 +346,11 @@ chrome.runtime.onInstalled.addListener(async (details) => {
   await getLists();
   const goalData = await chrome.storage.local.get([
     STORAGE_KEYS.dailyGoalMinutes,
-    STORAGE_KEYS.weeklyGoalMinutes
+    STORAGE_KEYS.weeklyGoalMinutes,
+    STORAGE_KEYS.focusModeEnabled,
+    STORAGE_KEYS.focusModeBlockedSites,
+    STORAGE_KEYS.focusModeOverrideCooldownMs,
+    STORAGE_KEYS.focusModeOverrideDuration
   ]);
   if (typeof goalData[STORAGE_KEYS.dailyGoalMinutes] !== "number") {
     await chrome.storage.local.set({ [STORAGE_KEYS.dailyGoalMinutes]: DEFAULT_GOAL_MINUTES });
@@ -350,6 +359,18 @@ chrome.runtime.onInstalled.addListener(async (details) => {
     await chrome.storage.local.set({
       [STORAGE_KEYS.weeklyGoalMinutes]: DEFAULT_WEEKLY_GOAL_MINUTES
     });
+  }
+  if (typeof goalData[STORAGE_KEYS.focusModeEnabled] !== "boolean") {
+    await chrome.storage.local.set({ [STORAGE_KEYS.focusModeEnabled]: false });
+  }
+  if (!Array.isArray(goalData[STORAGE_KEYS.focusModeBlockedSites])) {
+    await chrome.storage.local.set({ [STORAGE_KEYS.focusModeBlockedSites]: [] });
+  }
+  if (typeof goalData[STORAGE_KEYS.focusModeOverrideCooldownMs] !== "number") {
+    await chrome.storage.local.set({ [STORAGE_KEYS.focusModeOverrideCooldownMs]: 5 * 60 * 1e3 });
+  }
+  if (typeof goalData[STORAGE_KEYS.focusModeOverrideDuration] !== "number") {
+    await chrome.storage.local.set({ [STORAGE_KEYS.focusModeOverrideDuration]: 15 * 60 * 1e3 });
   }
   chrome.alarms.create(ALARM_HEARTBEAT, { periodInMinutes: 1 });
   await refreshActiveTab();
@@ -392,6 +413,44 @@ chrome.alarms.onAlarm.addListener(async (a) => {
   if (pulse) await flushPulse();
   void updateActionBadge();
 });
+async function getFocusModeConfig() {
+  const data = await chrome.storage.local.get([
+    STORAGE_KEYS.focusModeEnabled,
+    STORAGE_KEYS.focusModeBlockedSites,
+    STORAGE_KEYS.focusModeOverrideCooldownMs,
+    STORAGE_KEYS.focusModeOverrideDuration,
+    STORAGE_KEYS.focusModeLastOverrideTime
+  ]);
+  return {
+    enabled: data[STORAGE_KEYS.focusModeEnabled] === true,
+    blockedSites: data[STORAGE_KEYS.focusModeBlockedSites] || [],
+    overrideCooldownMs: data[STORAGE_KEYS.focusModeOverrideCooldownMs] || 5 * 60 * 1e3,
+    overrideDurationMs: data[STORAGE_KEYS.focusModeOverrideDuration] || 15 * 60 * 1e3,
+    lastOverrideTime: data[STORAGE_KEYS.focusModeLastOverrideTime]
+  };
+}
+function isUrlBlocked(url, blockedSites) {
+  if (!url) return false;
+  try {
+    const u = new URL(url);
+    const hostname = u.hostname.toLowerCase().replace(/^www\./, "");
+    for (const site of blockedSites) {
+      const normalizedSite = site.toLowerCase().replace(/^www\./, "");
+      if (hostname === normalizedSite || hostname.endsWith("." + normalizedSite)) {
+        return true;
+      }
+    }
+  } catch {
+  }
+  return false;
+}
+async function isInOverridePeriod() {
+  const config = await getFocusModeConfig();
+  if (!config.lastOverrideTime) return false;
+  const now = Date.now();
+  const overrideUntil = config.lastOverrideTime + config.overrideDurationMs;
+  return now < overrideUntil;
+}
 async function handleSpaNavigation(tabId, url) {
   if (url == null) return;
   const [active] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
@@ -410,6 +469,24 @@ chrome.webNavigation.onReferenceFragmentUpdated.addListener((d) => {
   if (d.frameId !== 0) return;
   void handleSpaNavigation(d.tabId, d.url);
 });
+chrome.webNavigation.onBeforeNavigate.addListener(
+  async (details) => {
+    if (details.frameId !== 0) return;
+    const config = await getFocusModeConfig();
+    if (!config.enabled) return;
+    if (isUrlBlocked(details.url, config.blockedSites)) {
+      const inOverride = await isInOverridePeriod();
+      if (!inOverride) {
+        const hostname = new URL(details.url).hostname;
+        const redirectUrl = chrome.runtime.getURL(
+          `stay-focused.html?url=${encodeURIComponent(details.url)}&hostname=${encodeURIComponent(hostname)}`
+        );
+        chrome.tabs.update(details.tabId, { url: redirectUrl });
+      }
+    }
+  },
+  { url: [{ schemes: ["http", "https"] }] }
+);
 chrome.tabs.onActivated.addListener(async () => {
   await refreshActiveTab();
 });
@@ -547,6 +624,39 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     } else if (msg?.type === "COMPLETE_ONBOARDING") {
       await chrome.storage.local.set({ [STORAGE_KEYS.onboardingDone]: true });
       sendResponse({ ok: true });
+    } else if (msg?.type === "TOGGLE_FOCUS_MODE") {
+      const enabled = msg.enabled;
+      if (typeof enabled === "boolean") {
+        await chrome.storage.local.set({ [STORAGE_KEYS.focusModeEnabled]: enabled });
+        sendResponse({ ok: true, enabled });
+      } else {
+        const config = await getFocusModeConfig();
+        const newEnabled = !config.enabled;
+        await chrome.storage.local.set({ [STORAGE_KEYS.focusModeEnabled]: newEnabled });
+        sendResponse({ ok: true, enabled: newEnabled });
+      }
+    } else if (msg?.type === "UPDATE_FOCUS_BLOCKED_SITES") {
+      const sites = msg.sites || [];
+      const normalized = sites.map((s) => s.trim().toLowerCase().replace(/^www\./, "")).filter(Boolean);
+      await chrome.storage.local.set({ [STORAGE_KEYS.focusModeBlockedSites]: normalized });
+      sendResponse({ ok: true, sites: normalized });
+    } else if (msg?.type === "UPDATE_FOCUS_MODE_SETTINGS") {
+      const cooldownMs = msg.cooldownMs;
+      const durationMs = msg.durationMs;
+      const updates = {};
+      if (typeof cooldownMs === "number" && cooldownMs > 0) {
+        updates[STORAGE_KEYS.focusModeOverrideCooldownMs] = cooldownMs;
+      }
+      if (typeof durationMs === "number" && durationMs > 0) {
+        updates[STORAGE_KEYS.focusModeOverrideDuration] = durationMs;
+      }
+      if (Object.keys(updates).length > 0) {
+        await chrome.storage.local.set(updates);
+      }
+      sendResponse({ ok: true });
+    } else if (msg?.type === "GET_FOCUS_MODE_CONFIG") {
+      const config = await getFocusModeConfig();
+      sendResponse(config);
     } else {
       sendResponse(null);
     }

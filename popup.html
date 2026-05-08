@@ -75,6 +75,32 @@
       </div>
     </section>
 
+    <section class="focus-mode" aria-label="Focus Mode">
+      <h2>Focus Mode</h2>
+      <p class="hint" id="focusModeHint">Block distracting sites automatically. Configure your blocklist in Settings.</p>
+      <div class="focus-row">
+        <label class="check">
+          <input type="checkbox" id="focusModeToggle" aria-describedby="focusStatus" />
+          <span>Focus Mode</span>
+        </label>
+        <span id="focusStatus" class="status-pill" hidden></span>
+      </div>
+    </section>
+
+    <section class="tab-lock" aria-label="Tab Locking">
+      <h2>Tab Locking</h2>
+      <p class="hint" id="tabLockHint">Protect tabs from accidental closing during focus sessions.</p>
+      <div class="lock-row">
+        <button type="button" id="lockTabBtn" class="primary sm">Lock Current Tab</button>
+        <span id="lockStatus" class="status-pill" hidden></span>
+      </div>
+      <label class="check" style="margin-top: 8px;">
+        <input type="checkbox" id="deepFocusToggle" aria-describedby="deepFocusStatus" />
+        <span>Deep Focus (prevent distraction tabs)</span>
+      </label>
+      <span id="deepFocusStatus" class="status-pill" hidden style="margin-left: 6px;"></span>
+    </section>
+
     <section class="session" aria-label="Study session">
       <h2>Study session</h2>
       <p class="hint">Timer runs while Chrome is focused. Pomodoro can use optional notifications (enable in Settings).</p>

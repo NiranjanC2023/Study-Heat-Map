@@ -277,6 +277,12 @@ chrome.runtime.onInstalled.addListener(async (details) => {
   const goalData = await chrome.storage.local.get([
     STORAGE_KEYS.dailyGoalMinutes,
     STORAGE_KEYS.weeklyGoalMinutes,
+    STORAGE_KEYS.focusModeEnabled,
+    STORAGE_KEYS.focusModeBlockedSites,
+    STORAGE_KEYS.focusModeOverrideCooldownMs,
+    STORAGE_KEYS.focusModeOverrideDuration,
+    STORAGE_KEYS.lockedTabIds,
+    STORAGE_KEYS.deepFocusEnabled,
   ]);
   if (typeof goalData[STORAGE_KEYS.dailyGoalMinutes] !== "number") {
     await chrome.storage.local.set({ [STORAGE_KEYS.dailyGoalMinutes]: DEFAULT_GOAL_MINUTES });
@@ -285,6 +291,26 @@ chrome.runtime.onInstalled.addListener(async (details) => {
     await chrome.storage.local.set({
       [STORAGE_KEYS.weeklyGoalMinutes]: DEFAULT_WEEKLY_GOAL_MINUTES,
     });
+  }
+  // Initialize Focus Mode defaults if not set
+  if (typeof goalData[STORAGE_KEYS.focusModeEnabled] !== "boolean") {
+    await chrome.storage.local.set({ [STORAGE_KEYS.focusModeEnabled]: false });
+  }
+  if (!Array.isArray(goalData[STORAGE_KEYS.focusModeBlockedSites])) {
+    await chrome.storage.local.set({ [STORAGE_KEYS.focusModeBlockedSites]: [] });
+  }
+  if (typeof goalData[STORAGE_KEYS.focusModeOverrideCooldownMs] !== "number") {
+    await chrome.storage.local.set({ [STORAGE_KEYS.focusModeOverrideCooldownMs]: 5 * 60 * 1000 });
+  }
+  if (typeof goalData[STORAGE_KEYS.focusModeOverrideDuration] !== "number") {
+    await chrome.storage.local.set({ [STORAGE_KEYS.focusModeOverrideDuration]: 15 * 60 * 1000 });
+  }
+  // Initialize Tab Locking defaults if not set
+  if (!Array.isArray(goalData[STORAGE_KEYS.lockedTabIds])) {
+    await chrome.storage.local.set({ [STORAGE_KEYS.lockedTabIds]: [] });
+  }
+  if (typeof goalData[STORAGE_KEYS.deepFocusEnabled] !== "boolean") {
+    await chrome.storage.local.set({ [STORAGE_KEYS.deepFocusEnabled]: false });
   }
   chrome.alarms.create(ALARM_HEARTBEAT, { periodInMinutes: 1 });
   await refreshActiveTab();
@@ -334,6 +360,98 @@ chrome.alarms.onAlarm.addListener(async (a) => {
   void updateActionBadge();
 });
 
+// Focus Mode functions
+async function getFocusModeConfig(): Promise<{
+  enabled: boolean;
+  blockedSites: string[];
+  overrideCooldownMs: number;
+  overrideDurationMs: number;
+  lastOverrideTime?: number;
+}> {
+  const data = await chrome.storage.local.get([
+    STORAGE_KEYS.focusModeEnabled,
+    STORAGE_KEYS.focusModeBlockedSites,
+    STORAGE_KEYS.focusModeOverrideCooldownMs,
+    STORAGE_KEYS.focusModeOverrideDuration,
+    STORAGE_KEYS.focusModeLastOverrideTime,
+  ]);
+  return {
+    enabled: data[STORAGE_KEYS.focusModeEnabled] === true,
+    blockedSites: (data[STORAGE_KEYS.focusModeBlockedSites] as string[]) || [],
+    overrideCooldownMs:
+      (data[STORAGE_KEYS.focusModeOverrideCooldownMs] as number) || 5 * 60 * 1000,
+    overrideDurationMs: (data[STORAGE_KEYS.focusModeOverrideDuration] as number) || 15 * 60 * 1000,
+    lastOverrideTime: data[STORAGE_KEYS.focusModeLastOverrideTime] as number | undefined,
+  };
+}
+
+function isUrlBlocked(url: string | undefined, blockedSites: string[]): boolean {
+  if (!url) return false;
+  try {
+    const u = new URL(url);
+    const hostname = u.hostname.toLowerCase().replace(/^www\./, "");
+    for (const site of blockedSites) {
+      const normalizedSite = site.toLowerCase().replace(/^www\./, "");
+      if (hostname === normalizedSite || hostname.endsWith("." + normalizedSite)) {
+        return true;
+      }
+    }
+  } catch {
+    /* invalid URL */
+  }
+  return false;
+}
+
+async function isInOverridePeriod(): Promise<boolean> {
+  const config = await getFocusModeConfig();
+  if (!config.lastOverrideTime) return false;
+  const now = Date.now();
+  const overrideUntil = config.lastOverrideTime + config.overrideDurationMs;
+  return now < overrideUntil;
+}
+
+// Tab Locking functions
+async function getLockedTabs(): Promise<number[]> {
+  const data = await chrome.storage.local.get(STORAGE_KEYS.lockedTabIds);
+  return (data[STORAGE_KEYS.lockedTabIds] as number[]) || [];
+}
+
+async function isTabLocked(tabId: number): Promise<boolean> {
+  const lockedTabs = await getLockedTabs();
+  return lockedTabs.includes(tabId);
+}
+
+async function lockTab(tabId: number): Promise<void> {
+  const lockedTabs = await getLockedTabs();
+  if (!lockedTabs.includes(tabId)) {
+    lockedTabs.push(tabId);
+    await chrome.storage.local.set({ [STORAGE_KEYS.lockedTabIds]: lockedTabs });
+  }
+  // Notify content script of lock status
+  try {
+    await chrome.tabs.sendMessage(tabId, { type: "UPDATE_LOCK_INDICATOR", locked: true });
+  } catch {
+    /* tab not ready */
+  }
+}
+
+async function unlockTab(tabId: number): Promise<void> {
+  const lockedTabs = await getLockedTabs();
+  const filtered = lockedTabs.filter((id) => id !== tabId);
+  await chrome.storage.local.set({ [STORAGE_KEYS.lockedTabIds]: filtered });
+  // Notify content script of lock status
+  try {
+    await chrome.tabs.sendMessage(tabId, { type: "UPDATE_LOCK_INDICATOR", locked: false });
+  } catch {
+    /* tab not ready */
+  }
+}
+
+async function isDeepFocusEnabled(): Promise<boolean> {
+  const data = await chrome.storage.local.get(STORAGE_KEYS.deepFocusEnabled);
+  return data[STORAGE_KEYS.deepFocusEnabled] === true;
+}
+
 async function handleSpaNavigation(tabId: number, url: string | undefined): Promise<void> {
   if (url == null) return;
   const [active] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
@@ -354,6 +472,52 @@ chrome.webNavigation.onHistoryStateUpdated.addListener((d) => {
 chrome.webNavigation.onReferenceFragmentUpdated.addListener((d) => {
   if (d.frameId !== 0) return;
   void handleSpaNavigation(d.tabId, d.url);
+});
+
+// Focus Mode: Block navigation to distracting sites
+chrome.webNavigation.onBeforeNavigate.addListener(
+  async (details) => {
+    if (details.frameId !== 0) return; // Only check main frame
+    
+    // Deep Focus mode: prevent distraction tabs
+    const deepFocus = await isDeepFocusEnabled();
+    if (deepFocus) {
+      const { distraction } = await getLists();
+      if (isUrlBlocked(details.url, distraction)) {
+        const hostname = new URL(details.url).hostname;
+        const redirectUrl = chrome.runtime.getURL(
+          `stay-focused.html?url=${encodeURIComponent(details.url)}&hostname=${encodeURIComponent(hostname)}&reason=deep-focus`
+        );
+        chrome.tabs.update(details.tabId, { url: redirectUrl });
+        return;
+      }
+    }
+    
+    // Regular Focus Mode: block with override
+    const config = await getFocusModeConfig();
+    if (!config.enabled) return;
+    if (isUrlBlocked(details.url, config.blockedSites)) {
+      const inOverride = await isInOverridePeriod();
+      if (!inOverride) {
+        const hostname = new URL(details.url).hostname;
+        const redirectUrl = chrome.runtime.getURL(
+          `stay-focused.html?url=${encodeURIComponent(details.url)}&hostname=${encodeURIComponent(hostname)}`
+        );
+        chrome.tabs.update(details.tabId, { url: redirectUrl });
+      }
+    }
+  },
+  { url: [{ schemes: ["http", "https"] }] }
+);
+
+// Prevent closing locked tabs
+chrome.tabs.onRemoved.addListener(async (tabId) => {
+  const lockedTabs = await getLockedTabs();
+  if (lockedTabs.includes(tabId)) {
+    // Remove from locked list since tab was closed
+    const filtered = lockedTabs.filter((id) => id !== tabId);
+    await chrome.storage.local.set({ [STORAGE_KEYS.lockedTabIds]: filtered });
+  }
 });
 
 chrome.tabs.onActivated.addListener(async () => {
@@ -503,6 +667,75 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     } else if (msg?.type === "COMPLETE_ONBOARDING") {
       await chrome.storage.local.set({ [STORAGE_KEYS.onboardingDone]: true });
       sendResponse({ ok: true });
+    } else if (msg?.type === "TOGGLE_FOCUS_MODE") {
+      const enabled = msg.enabled as boolean | undefined;
+      if (typeof enabled === "boolean") {
+        await chrome.storage.local.set({ [STORAGE_KEYS.focusModeEnabled]: enabled });
+        sendResponse({ ok: true, enabled });
+      } else {
+        const config = await getFocusModeConfig();
+        const newEnabled = !config.enabled;
+        await chrome.storage.local.set({ [STORAGE_KEYS.focusModeEnabled]: newEnabled });
+        sendResponse({ ok: true, enabled: newEnabled });
+      }
+    } else if (msg?.type === "UPDATE_FOCUS_BLOCKED_SITES") {
+      const sites = (msg.sites as string[]) || [];
+      const normalized = sites
+        .map((s) => s.trim().toLowerCase().replace(/^www\./, ""))
+        .filter(Boolean);
+      await chrome.storage.local.set({ [STORAGE_KEYS.focusModeBlockedSites]: normalized });
+      sendResponse({ ok: true, sites: normalized });
+    } else if (msg?.type === "UPDATE_FOCUS_MODE_SETTINGS") {
+      const cooldownMs = msg.cooldownMs as number | undefined;
+      const durationMs = msg.durationMs as number | undefined;
+      const updates: Record<string, unknown> = {};
+      if (typeof cooldownMs === "number" && cooldownMs > 0) {
+        updates[STORAGE_KEYS.focusModeOverrideCooldownMs] = cooldownMs;
+      }
+      if (typeof durationMs === "number" && durationMs > 0) {
+        updates[STORAGE_KEYS.focusModeOverrideDuration] = durationMs;
+      }
+      if (Object.keys(updates).length > 0) {
+        await chrome.storage.local.set(updates);
+      }
+      sendResponse({ ok: true });
+    } else if (msg?.type === "GET_FOCUS_MODE_CONFIG") {
+      const config = await getFocusModeConfig();
+      sendResponse(config);
+    } else if (msg?.type === "LOCK_TAB") {
+      const tabId = msg.tabId as number | undefined;
+      if (typeof tabId === "number") {
+        await lockTab(tabId);
+        sendResponse({ ok: true, locked: true });
+      } else {
+        sendResponse({ ok: false, error: "invalid tabId" });
+      }
+    } else if (msg?.type === "UNLOCK_TAB") {
+      const tabId = msg.tabId as number | undefined;
+      if (typeof tabId === "number") {
+        await unlockTab(tabId);
+        sendResponse({ ok: true, locked: false });
+      } else {
+        sendResponse({ ok: false, error: "invalid tabId" });
+      }
+    } else if (msg?.type === "CHECK_TAB_LOCKED") {
+      const tabId = (sender.tab?.id as number) || 0;
+      const locked = await isTabLocked(tabId);
+      sendResponse({ locked });
+    } else if (msg?.type === "GET_LOCKED_TABS") {
+      const lockedTabs = await getLockedTabs();
+      sendResponse({ lockedTabs });
+    } else if (msg?.type === "TOGGLE_DEEP_FOCUS") {
+      const enabled = msg.enabled as boolean | undefined;
+      if (typeof enabled === "boolean") {
+        await chrome.storage.local.set({ [STORAGE_KEYS.deepFocusEnabled]: enabled });
+        sendResponse({ ok: true, enabled });
+      } else {
+        const current = await isDeepFocusEnabled();
+        const newEnabled = !current;
+        await chrome.storage.local.set({ [STORAGE_KEYS.deepFocusEnabled]: newEnabled });
+        sendResponse({ ok: true, enabled: newEnabled });
+      }
     } else {
       sendResponse(null);
     }

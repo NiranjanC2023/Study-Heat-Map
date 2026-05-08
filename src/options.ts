@@ -28,6 +28,9 @@ async function load(): Promise<void> {
     STORAGE_KEYS.dailyGoalMinutes,
     STORAGE_KEYS.weeklyGoalMinutes,
     STORAGE_KEYS.pomodoroNotify,
+    STORAGE_KEYS.focusModeEnabled,
+    STORAGE_KEYS.focusModeOverrideCooldownMs,
+    STORAGE_KEYS.focusModeOverrideDuration,
   ]);
   const p = (data[STORAGE_KEYS.productiveHosts] as string[]) || [];
   const d = (data[STORAGE_KEYS.distractionHosts] as string[]) || [];
@@ -45,6 +48,21 @@ async function load(): Promise<void> {
   (document.getElementById("weeklyGoal") as HTMLInputElement).value = String(wgoal);
   const notify = data[STORAGE_KEYS.pomodoroNotify] !== false;
   (document.getElementById("pomodoroNotify") as HTMLInputElement).checked = notify;
+  
+  // Load Focus Mode settings
+  const focusEnabled = data[STORAGE_KEYS.focusModeEnabled] === true;
+  (document.getElementById("focusModeEnabled") as HTMLInputElement).checked = focusEnabled;
+  
+  const cooldownMs = (data[STORAGE_KEYS.focusModeOverrideCooldownMs] as number) || 5 * 60 * 1000;
+  (document.getElementById("focusModeCooldown") as HTMLInputElement).value = String(
+    Math.round(cooldownMs / 60000)
+  );
+  
+  const durationMs = (data[STORAGE_KEYS.focusModeOverrideDuration] as number) || 15 * 60 * 1000;
+  (document.getElementById("focusModeOverrideDuration") as HTMLInputElement).value = String(
+    Math.round(durationMs / 60000)
+  );
+  
   await syncNotifyWarning();
 }
 
@@ -68,6 +86,17 @@ document.getElementById("save")!.addEventListener("click", async () => {
   let pomodoroNotify = (document.getElementById("pomodoroNotify") as HTMLInputElement).checked;
   const st = document.getElementById("status")!;
 
+  // Get Focus Mode settings
+  const focusEnabled = (document.getElementById("focusModeEnabled") as HTMLInputElement).checked;
+  const cooldownMin = Math.max(
+    1,
+    Math.min(120, Number((document.getElementById("focusModeCooldown") as HTMLInputElement).value) || 5)
+  );
+  const durationMin = Math.max(
+    1,
+    Math.min(120, Number((document.getElementById("focusModeOverrideDuration") as HTMLInputElement).value) || 15)
+  );
+
   if (pomodoroNotify) {
     const granted = await chrome.permissions.request({ permissions: ["notifications"] });
     if (!granted) {
@@ -81,6 +110,10 @@ document.getElementById("save")!.addEventListener("click", async () => {
         [STORAGE_KEYS.dailyGoalMinutes]: goal,
         [STORAGE_KEYS.weeklyGoalMinutes]: weeklyGoal,
         [STORAGE_KEYS.pomodoroNotify]: false,
+        [STORAGE_KEYS.focusModeEnabled]: focusEnabled,
+        [STORAGE_KEYS.focusModeBlockedSites]: distraction,
+        [STORAGE_KEYS.focusModeOverrideCooldownMs]: cooldownMin * 60000,
+        [STORAGE_KEYS.focusModeOverrideDuration]: durationMin * 60000,
       });
       await syncNotifyWarning();
       setTimeout(() => {
@@ -96,6 +129,10 @@ document.getElementById("save")!.addEventListener("click", async () => {
     [STORAGE_KEYS.dailyGoalMinutes]: goal,
     [STORAGE_KEYS.weeklyGoalMinutes]: weeklyGoal,
     [STORAGE_KEYS.pomodoroNotify]: pomodoroNotify,
+    [STORAGE_KEYS.focusModeEnabled]: focusEnabled,
+    [STORAGE_KEYS.focusModeBlockedSites]: distraction,
+    [STORAGE_KEYS.focusModeOverrideCooldownMs]: cooldownMin * 60000,
+    [STORAGE_KEYS.focusModeOverrideDuration]: durationMin * 60000,
   });
   st.textContent = "Saved.";
   st.className = "status ok";

@@ -11,7 +11,12 @@ var STORAGE_KEYS = {
   dailyGoalMinutes: "dailyGoalMinutes",
   weeklyGoalMinutes: "weeklyGoalMinutes",
   pomodoroNotify: "pomodoroNotify",
-  pomodoroState: "pomodoroState"
+  pomodoroState: "pomodoroState",
+  focusModeEnabled: "focusModeEnabled",
+  focusModeBlockedSites: "focusModeBlockedSites",
+  focusModeOverrideCooldownMs: "focusModeOverrideCooldownMs",
+  focusModeLastOverrideTime: "focusModeLastOverrideTime",
+  focusModeOverrideDuration: "focusModeOverrideDuration"
 };
 
 // src/lib/dates.ts

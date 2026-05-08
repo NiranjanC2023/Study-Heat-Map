@@ -11,7 +11,12 @@ var STORAGE_KEYS = {
   dailyGoalMinutes: "dailyGoalMinutes",
   weeklyGoalMinutes: "weeklyGoalMinutes",
   pomodoroNotify: "pomodoroNotify",
-  pomodoroState: "pomodoroState"
+  pomodoroState: "pomodoroState",
+  focusModeEnabled: "focusModeEnabled",
+  focusModeBlockedSites: "focusModeBlockedSites",
+  focusModeOverrideCooldownMs: "focusModeOverrideCooldownMs",
+  focusModeLastOverrideTime: "focusModeLastOverrideTime",
+  focusModeOverrideDuration: "focusModeOverrideDuration"
 };
 
 // src/lib/dates.ts
@@ -164,6 +169,17 @@ async function refresh() {
     } else {
       pauseHint.textContent = "Skip counting time briefly (e.g. research rabbit holes).";
     }
+    const focusModeEnabled = snap[STORAGE_KEYS.focusModeEnabled] === true;
+    const focusToggle = document.getElementById("focusModeToggle");
+    focusToggle.checked = focusModeEnabled;
+    const focusStatus = document.getElementById("focusStatus");
+    if (focusModeEnabled) {
+      focusStatus.textContent = "Active";
+      focusStatus.className = "status-pill active";
+      focusStatus.hidden = false;
+    } else {
+      focusStatus.hidden = true;
+    }
     const activeId = snap[STORAGE_KEYS.activeSessionId];
     const pom = snap[STORAGE_KEYS.pomodoroState];
     const status = document.getElementById("sessionStatus");
@@ -268,6 +284,20 @@ document.getElementById("pauseClear").addEventListener("click", async () => {
   }
   await refresh();
 });
+document.getElementById("focusModeToggle").addEventListener("change", async (e) => {
+  const checkbox = e.target;
+  try {
+    await chrome.runtime.sendMessage({
+      type: "TOGGLE_FOCUS_MODE",
+      enabled: checkbox.checked
+    });
+  } catch {
+    showError("Couldn't toggle Focus Mode.");
+    checkbox.checked = !checkbox.checked;
+    return;
+  }
+  await refresh();
+});
 document.getElementById("openDash").addEventListener("click", () => {
   chrome.tabs.create({ url: chrome.runtime.getURL("dashboard.html") });
 });
@@ -284,7 +314,8 @@ var WATCH_KEYS = /* @__PURE__ */ new Set([
   STORAGE_KEYS.activeSessionId,
   STORAGE_KEYS.pomodoroState,
   STORAGE_KEYS.dailyGoalMinutes,
-  STORAGE_KEYS.weeklyGoalMinutes
+  STORAGE_KEYS.weeklyGoalMinutes,
+  STORAGE_KEYS.focusModeEnabled
 ]);
 chrome.storage.onChanged.addListener((changes, area) => {
   if (area !== "local") return;

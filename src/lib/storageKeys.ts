@@ -11,4 +11,11 @@ export const STORAGE_KEYS = {
   weeklyGoalMinutes: "weeklyGoalMinutes",
   pomodoroNotify: "pomodoroNotify",
   pomodoroState: "pomodoroState",
+  focusModeEnabled: "focusModeEnabled",
+  focusModeBlockedSites: "focusModeBlockedSites",
+  focusModeOverrideCooldownMs: "focusModeOverrideCooldownMs",
+  focusModeLastOverrideTime: "focusModeLastOverrideTime",
+  focusModeOverrideDuration: "focusModeOverrideDuration",
+  lockedTabIds: "lockedTabIds",
+  deepFocusEnabled: "deepFocusEnabled",
 } as const;

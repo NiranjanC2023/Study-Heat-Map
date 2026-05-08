@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Stay Focused — Study Heatmap</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell,
+          "Open Sans", "Helvetica Neue", sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+      }
+
+      .container {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        max-width: 600px;
+        width: 100%;
+        padding: 60px 40px;
+        text-align: center;
+      }
+
+      .icon {
+        font-size: 64px;
+        margin-bottom: 20px;
+      }
+
+      h1 {
+        color: #1f2937;
+        font-size: 32px;
+        margin-bottom: 16px;
+        font-weight: 600;
+      }
+
+      .subtitle {
+        color: #6b7280;
+        font-size: 18px;
+        margin-bottom: 12px;
+      }
+
+      .message {
+        color: #4b5563;
+        font-size: 16px;
+        line-height: 1.6;
+        margin-bottom: 20px;
+      }
+
+      .site-info {
+        background: #f3f4f6;
+        border-left: 4px solid #667eea;
+        padding: 16px 20px;
+        border-radius: 6px;
+        margin: 30px 0;
+        text-align: left;
+        font-family: "Monaco", "Courier New", monospace;
+        word-break: break-all;
+        color: #374151;
+      }
+
+      .timer-section {
+        margin: 30px 0;
+        padding: 20px;
+        background: #f0f9ff;
+        border-radius: 8px;
+      }
+
+      .timer-label {
+        color: #1e40af;
+        font-size: 14px;
+        font-weight: 500;
+        margin-bottom: 10px;
+      }
+
+      .timer-display {
+        font-size: 48px;
+        font-weight: bold;
+        color: #1e40af;
+        font-family: "Monaco", "Courier New", monospace;
+        letter-spacing: 2px;
+      }
+
+      .override-section {
+        margin-top: 30px;
+      }
+
+      .override-btn {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        padding: 14px 32px;
+        font-size: 16px;
+        font-weight: 600;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        margin-bottom: 12px;
+      }
+
+      .override-btn:hover:not(:disabled) {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+      }
+
+      .override-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      .override-info {
+        color: #6b7280;
+        font-size: 14px;
+        line-height: 1.5;
+      }
+
+      .cooldown-timer {
+        color: #d97706;
+        font-weight: 600;
+        font-family: "Monaco", "Courier New", monospace;
+      }
+
+      .hidden {
+        display: none;
+      }
+
+      .button-row {
+        display: flex;
+        gap: 12px;
+        justify-content: center;
+        flex-wrap: wrap;
+      }
+
+      .secondary-btn {
+        background: #e5e7eb;
+        color: #374151;
+        border: none;
+        padding: 12px 24px;
+        font-size: 14px;
+        font-weight: 600;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
+
+      .secondary-btn:hover {
+        background: #d1d5db;
+      }
+
+      .motivation-box {
+        background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+        border-radius: 8px;
+        padding: 20px;
+        margin: 24px 0;
+        border-left: 4px solid #f59e0b;
+      }
+
+      .motivation-title {
+        color: #92400e;
+        font-size: 14px;
+        font-weight: 600;
+        margin-bottom: 8px;
+      }
+
+      .motivation-text {
+        color: #78350f;
+        font-size: 16px;
+        line-height: 1.6;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="icon">🎯</div>
+      <h1>Stay Focused</h1>
+      <p class="subtitle" id="subtitle">You're in Focus Mode</p>
+
+      <div class="motivation-box">
+        <div class="motivation-title">Remember why you're here</div>
+        <div class="motivation-text" id="motivationText">You enabled Focus Mode to minimize distractions and maximize productivity. You got this!</div>
+      </div>
+
+      <div class="message" id="message">
+        <strong>This site is blocked</strong> while Focus Mode is active. Your distraction list helps you stay on track.
+      </div>
+
+      <div class="site-info" id="siteInfo">Loading site information...</div>
+
+      <div class="timer-section" id="timerSection" class="hidden">
+        <div class="timer-label">Override available in:</div>
+        <div class="timer-display" id="overrideTimer">00:00</div>
+      </div>
+
+      <div class="override-section">
+        <div class="button-row">
+          <button class="override-btn" id="overrideBtn" disabled>Temporary Override (15 min)</button>
+          <button class="secondary-btn" id="setupBtn">Configure Focus Mode</button>
+        </div>
+        <p class="override-info" id="overrideInfo">Override available soon. Use wisely — cooldown enforced.</p>
+      </div>
+    </div>
+
+    <script>
+      const DEFAULT_COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes
+      const DEFAULT_OVERRIDE_MS = 15 * 60 * 1000; // 15 minutes
+      const TIMER_UPDATE_INTERVAL = 1000; // 1 second
+
+      async function init() {
+        const blockedUrl = new URLSearchParams(window.location.search).get("url");
+        const hostname = new URLSearchParams(window.location.search).get("hostname");
+        const reason = new URLSearchParams(window.location.search).get("reason");
+        const isDeepFocus = reason === "deep-focus";
+
+        // Update UI based on mode
+        document.getElementById("subtitle")!.textContent = isDeepFocus ? "Deep Focus Mode Active" : "You're in Focus Mode";
+        const motivationText = document.getElementById("motivationText")!;
+        if (isDeepFocus) {
+          motivationText.textContent = "Deep Focus mode is on — distracting sites are completely blocked. Stay strong!";
+        } else {
+          motivationText.textContent = "You enabled Focus Mode to minimize distractions and maximize productivity. You got this!";
+        }
+
+        const messageEl = document.getElementById("message")!;
+        if (isDeepFocus) {
+          messageEl.innerHTML = "<strong>Deep Focus Mode</strong> completely blocks distracting sites — no overrides allowed.";
+        } else {
+          messageEl.innerHTML = "<strong>This site is blocked</strong> while Focus Mode is active. Your distraction list helps you stay on track.";
+        }
+
+        // Display blocked site info
+        const siteInfoEl = document.getElementById("siteInfo");
+        if (hostname) {
+          siteInfoEl.textContent = `Blocked site: ${hostname}`;
+        } else {
+          siteInfoEl.textContent = "Blocked site: (unknown)";
+        }
+
+        // Get focus mode config from storage
+        const storage = await chrome.storage.local.get([
+          "focusModeLastOverrideTime",
+          "focusModeOverrideCooldownMs",
+          "focusModeOverrideDuration",
+        ]);
+
+        const lastOverrideTime = storage.focusModeLastOverrideTime || 0;
+        const cooldownMs = storage.focusModeOverrideCooldownMs || DEFAULT_COOLDOWN_MS;
+        const overrideDurationMs = storage.focusModeOverrideDuration || DEFAULT_OVERRIDE_MS;
+
+        const now = Date.now();
+        const nextOverrideAvailable = lastOverrideTime + cooldownMs;
+        const canOverride = now >= nextOverrideAvailable;
+
+        const overrideBtn = document.getElementById("overrideBtn");
+        const timerSection = document.getElementById("timerSection");
+        const overrideInfo = document.getElementById("overrideInfo");
+        const overrideTimer = document.getElementById("overrideTimer");
+
+        function formatTime(ms) {
+          const totalSeconds = Math.ceil(ms / 1000);
+          const minutes = Math.floor(totalSeconds / 60);
+          const seconds = totalSeconds % 60;
+          return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+        }
+
+        // Handle Deep Focus mode (no overrides)
+        if (isDeepFocus) {
+          overrideBtn.disabled = true;
+          overrideBtn.textContent = "Deep Focus: No Overrides";
+          timerSection.classList.add("hidden");
+          overrideInfo.textContent = "Deep Focus mode does not allow overrides. Disable Deep Focus in settings to override.";
+          document.getElementById("setupBtn")!.addEventListener("click", () => {
+            chrome.runtime.openOptionsPage();
+          });
+          return;
+        }
+
+        function updateTimer() {
+          const now = Date.now();
+          const timeUntilOverride = nextOverrideAvailable - now;
+
+          if (timeUntilOverride <= 0) {
+            overrideBtn.disabled = false;
+            timerSection.classList.add("hidden");
+            overrideInfo.textContent = "Override is available. Use it wisely — cooldown enforced.";
+          } else {
+            overrideBtn.disabled = true;
+            timerSection.classList.remove("hidden");
+            overrideTimer.textContent = formatTime(timeUntilOverride);
+            overrideInfo.innerHTML = `Override available in <span class="cooldown-timer">${formatTime(timeUntilOverride)}</span>. Use wisely.`;
+          }
+        }
+
+        // Initial update
+        updateTimer();
+
+        // Update timer every second
+        setInterval(updateTimer, TIMER_UPDATE_INTERVAL);
+
+        // Override button handler
+        overrideBtn.addEventListener("click", async () => {
+          const now = Date.now();
+          await chrome.storage.local.set({
+            focusModeLastOverrideTime: now,
+          });
+
+          // Track the override duration
+          const overrideUntil = now + overrideDurationMs;
+          await chrome.storage.local.set({
+            focusModeOverrideUntil: overrideUntil,
+          });
+
+          // Navigate to the blocked site or display success
+          if (blockedUrl) {
+            window.location.href = blockedUrl;
+          } else {
+            overrideInfo.textContent = "Override granted for 15 minutes. Close this tab to continue.";
+            overrideBtn.disabled = true;
+          }
+        });
+
+        // Configure button handler
+        document.getElementById("setupBtn").addEventListener("click", () => {
+          chrome.runtime.openOptionsPage();
+        });
+      }
+
+      init().catch(console.error);
+    </script>
+  </body>
+</html>
