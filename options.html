@@ -35,28 +35,15 @@
           Chrome will prompt for the <strong>notifications</strong> permission when you save with this on.
         </p>
         <p id="notifyWarn" class="warn" hidden role="status"></p>
-      </section>
-
-      <section class="prefs" aria-label="Focus Mode settings">
-        <h2>Focus Mode</h2>
-        <label class="check">
-          <input type="checkbox" id="focusModeEnabled" aria-describedby="focusHint" />
-          <span>Enable Focus Mode</span>
-        </label>
-        <p id="focusHint" class="field-hint">
-          Block distracting sites automatically. Requires configuring your distraction list below.
-        </p>
-
         <label class="inline">
-          <span>Override cooldown (minutes)</span>
-          <input type="number" id="focusModeCooldown" min="1" max="120" step="1" aria-describedby="cooldownHint" />
-          <span id="cooldownHint" class="field-hint">Time to wait before allowing another override.</span>
+          <span>Focus override duration (minutes)</span>
+          <input type="number" id="focusOverrideDuration" min="1" max="180" step="1" aria-describedby="ovDurHint" />
+          <span id="ovDurHint" class="field-hint">How long “Allow temporarily” keeps distractions unblocked.</span>
         </label>
-
         <label class="inline">
-          <span>Override duration (minutes)</span>
-          <input type="number" id="focusModeOverrideDuration" min="1" max="120" step="1" aria-describedby="durationHint" />
-          <span id="durationHint" class="field-hint">How long each override lasts.</span>
+          <span>Focus override cooldown (minutes)</span>
+          <input type="number" id="focusOverrideCooldown" min="1" max="720" step="1" aria-describedby="ovCoolHint" />
+          <span id="ovCoolHint" class="field-hint">Minimum wait between override uses.</span>
         </label>
       </section>
 
@@ -66,7 +53,7 @@
           <textarea id="productive" rows="14" spellcheck="false" placeholder="github.com&#10;youtube.com/playlist" title="One rule per line"></textarea>
         </label>
         <label class="field">
-          <span class="title distraction">Distraction (blocked in Focus Mode)</span>
+          <span class="title distraction">Distraction</span>
           <textarea id="distraction" rows="14" spellcheck="false" placeholder="youtube.com&#10;reddit.com/r/memes" title="One rule per line"></textarea>
         </label>
       </div>

@@ -55,6 +55,28 @@
       </div>
     </section>
 
+    <section class="focus-panel" aria-label="Focus mode">
+      <h2>Focus mode</h2>
+      <p class="hint">
+        Blocks sites on your <strong>distraction</strong> list (Settings). Shows a stay-focused page instead.
+        Pause tracking also pauses blocking.
+      </p>
+      <label class="check-row">
+        <input type="checkbox" id="focusMode" />
+        <span>Focus Mode</span>
+      </label>
+      <label class="check-row">
+        <input type="checkbox" id="deepFocus" />
+        <span>Deep Focus (no temporary override)</span>
+      </label>
+    </section>
+
+    <section class="tab-lock" aria-label="Tab lock">
+      <h2>Tab lock</h2>
+      <p class="hint">Pins this tab and shows a lock banner. You can still close it — Chrome doesn’t allow hard locks.</p>
+      <button type="button" id="btnTabLock" class="ghost sm full-width">Lock this tab</button>
+    </section>
+
     <section class="quick-add" aria-label="Add current site to lists">
       <h2>Current tab</h2>
       <p class="hint" id="currentHostHint">Adds the site hostname to your lists (then saves in Settings).</p>
@@ -73,32 +95,6 @@
         <button type="button" class="ghost sm" data-pause="60">1h</button>
         <button type="button" class="ghost sm" id="pauseClear">Clear</button>
       </div>
-    </section>
-
-    <section class="focus-mode" aria-label="Focus Mode">
-      <h2>Focus Mode</h2>
-      <p class="hint" id="focusModeHint">Block distracting sites automatically. Configure your blocklist in Settings.</p>
-      <div class="focus-row">
-        <label class="check">
-          <input type="checkbox" id="focusModeToggle" aria-describedby="focusStatus" />
-          <span>Focus Mode</span>
-        </label>
-        <span id="focusStatus" class="status-pill" hidden></span>
-      </div>
-    </section>
-
-    <section class="tab-lock" aria-label="Tab Locking">
-      <h2>Tab Locking</h2>
-      <p class="hint" id="tabLockHint">Protect tabs from accidental closing during focus sessions.</p>
-      <div class="lock-row">
-        <button type="button" id="lockTabBtn" class="primary sm">Lock Current Tab</button>
-        <span id="lockStatus" class="status-pill" hidden></span>
-      </div>
-      <label class="check" style="margin-top: 8px;">
-        <input type="checkbox" id="deepFocusToggle" aria-describedby="deepFocusStatus" />
-        <span>Deep Focus (prevent distraction tabs)</span>
-      </label>
-      <span id="deepFocusStatus" class="status-pill" hidden style="margin-left: 6px;"></span>
     </section>
 
     <section class="session" aria-label="Study session">

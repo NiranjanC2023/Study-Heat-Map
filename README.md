@@ -1,6 +1,6 @@
 # Study Heatmap
 
-Chrome extension (Manifest V3) that tracks time on **productive** vs **distraction** sites (including **path rules** and **SPA navigations**), **pause** windows, **daily & weekly goals**, **streaks**, a **toolbar badge**, **quick-add** for the current site, **Pomodoro** (optional notifications), **exports**, and dashboards (heatmap, **top hosts**, **session timeline**, week-over-week). **Data stays local** — see `PRIVACY.md`.
+Chrome extension (Manifest V3) that tracks time on **productive** vs **distraction** sites (including **path rules** and **SPA navigations**), **Focus Mode** (redirect distractions to **Stay Focused** with optional cooldown override), **Deep Focus** (no override), **tab lock** (pin + on-page banner), **pause** windows, **daily & weekly goals**, **streaks**, a **toolbar badge**, **quick-add** for the current site, **Pomodoro** (optional notifications), **exports**, and dashboards (heatmap, **top hosts**, **session timeline**, week-over-week). **Data stays local** — see `PRIVACY.md`.
 
 ## Install (development)
 
@@ -15,7 +15,7 @@ Chrome extension (Manifest V3) that tracks time on **productive** vs **distracti
 
 ## Usage
 
-- **Popup**: daily & weekly goal progress, streak, quick-add current host, pause, Pomodoro, sessions, live totals, dashboard link.
+- **Popup**: Focus / Deep Focus toggles, tab lock, daily & weekly goals, streak, quick-add host, pause, Pomodoro, sessions, live totals, dashboard link.
 - **Options**: rules (`host` or `host/path`), daily & weekly productive goals (minutes), optional Pomodoro notifications (permission prompt on save).
 - **Dashboard**: heatmap, charts, week-over-week, top productive & distraction hosts (7d), recent sessions, JSON/CSV export, weekly report.
 - **Onboarding**: opens once on install; reopen from the popup (“How it works”).
@@ -37,7 +37,8 @@ CI runs on pushes/PRs via [`.github/workflows/ci.yml`](.github/workflows/ci.yml)
 | `tabs` | Read the **active tab URL** for classification; open dashboard/onboarding. |
 | `alarms` | Heartbeat + Pomodoro phase scheduling while the service worker sleeps. |
 | `idle` | Pause attribution when the user/system is idle. |
-| `webNavigation` | Detect **SPA** URL changes (`history.pushState`, hash) on the active tab so rules stay accurate. |
+| `webNavigation` | Detect **SPA** URL changes and drive Focus Mode redirects reliably. |
+| `scripting`     | Inject the tab-lock banner on locked tabs. |
 | `notifications` (**optional**) | Pomodoro alerts only if the user enables them and approves the permission. |
 | `host_permissions` `<all_urls>` | In MV3, reliable access to tab URLs for classification across sites. Narrowing this often breaks time-tracking extensions; data is still stored **only locally**. |
 

@@ -12,11 +12,20 @@ var STORAGE_KEYS = {
   weeklyGoalMinutes: "weeklyGoalMinutes",
   pomodoroNotify: "pomodoroNotify",
   pomodoroState: "pomodoroState",
+  /** Block distraction URLs → Stay Focused page */
   focusModeEnabled: "focusModeEnabled",
-  focusModeBlockedSites: "focusModeBlockedSites",
-  focusModeOverrideCooldownMs: "focusModeOverrideCooldownMs",
-  focusModeLastOverrideTime: "focusModeLastOverrideTime",
-  focusModeOverrideDuration: "focusModeOverrideDuration"
+  /** Stronger focus: no temporary override on blocked page */
+  deepFocusEnabled: "deepFocusEnabled",
+  /** Until this timestamp, distraction URLs are allowed (after override). */
+  focusOverrideUntil: "focusOverrideUntil",
+  /** How long an override lasts (minutes). */
+  focusOverrideDurationMin: "focusOverrideDurationMin",
+  /** Minimum minutes between override grants. */
+  focusOverrideCooldownMin: "focusOverrideCooldownMin",
+  /** Last time user granted an override (ms). */
+  lastFocusOverrideAt: "lastFocusOverrideAt",
+  /** Tab IDs pinned + injection for “locked” tabs */
+  lockedTabIds: "lockedTabIds"
 };
 
 // src/lib/dates.ts
@@ -162,23 +171,25 @@ async function refresh() {
     } else {
       hint.textContent = "Open a normal website tab to add its hostname to your lists.";
     }
+    const focusOn = snap[STORAGE_KEYS.focusModeEnabled] === true;
+    const deepOn = snap[STORAGE_KEYS.deepFocusEnabled] === true;
+    const focusEl = document.getElementById("focusMode");
+    const deepEl = document.getElementById("deepFocus");
+    focusEl.checked = focusOn;
+    deepEl.checked = deepOn;
+    deepEl.disabled = !focusOn;
+    const lockedIds = snap[STORAGE_KEYS.lockedTabIds] || [];
+    const btnLock = document.getElementById("btnTabLock");
+    const tid = tab?.id;
+    const isLocked = tid != null && lockedIds.includes(tid);
+    btnLock.textContent = isLocked ? "Unlock this tab" : "Lock this tab";
+    btnLock.disabled = tid == null;
     const pauseUntil = snap[STORAGE_KEYS.pauseUntil];
     const pauseHint = document.getElementById("pauseHint");
     if (typeof pauseUntil === "number" && Date.now() < pauseUntil) {
       pauseHint.textContent = `Paused until ${fmtTime(pauseUntil)} \u2014 site time and study timer won\u2019t accrue.`;
     } else {
       pauseHint.textContent = "Skip counting time briefly (e.g. research rabbit holes).";
-    }
-    const focusModeEnabled = snap[STORAGE_KEYS.focusModeEnabled] === true;
-    const focusToggle = document.getElementById("focusModeToggle");
-    focusToggle.checked = focusModeEnabled;
-    const focusStatus = document.getElementById("focusStatus");
-    if (focusModeEnabled) {
-      focusStatus.textContent = "Active";
-      focusStatus.className = "status-pill active";
-      focusStatus.hidden = false;
-    } else {
-      focusStatus.hidden = true;
     }
     const activeId = snap[STORAGE_KEYS.activeSessionId];
     const pom = snap[STORAGE_KEYS.pomodoroState];
@@ -284,20 +295,6 @@ document.getElementById("pauseClear").addEventListener("click", async () => {
   }
   await refresh();
 });
-document.getElementById("focusModeToggle").addEventListener("change", async (e) => {
-  const checkbox = e.target;
-  try {
-    await chrome.runtime.sendMessage({
-      type: "TOGGLE_FOCUS_MODE",
-      enabled: checkbox.checked
-    });
-  } catch {
-    showError("Couldn't toggle Focus Mode.");
-    checkbox.checked = !checkbox.checked;
-    return;
-  }
-  await refresh();
-});
 document.getElementById("openDash").addEventListener("click", () => {
   chrome.tabs.create({ url: chrome.runtime.getURL("dashboard.html") });
 });
@@ -307,6 +304,39 @@ document.getElementById("openOpts").addEventListener("click", () => {
 document.getElementById("openOnboard").addEventListener("click", () => {
   chrome.tabs.create({ url: chrome.runtime.getURL("onboarding.html") });
 });
+document.getElementById("focusMode").addEventListener("change", async (e) => {
+  const on = e.target.checked;
+  const patch = { [STORAGE_KEYS.focusModeEnabled]: on };
+  if (!on) patch[STORAGE_KEYS.deepFocusEnabled] = false;
+  await chrome.storage.local.set(patch);
+  await refresh();
+});
+document.getElementById("deepFocus").addEventListener("change", async (e) => {
+  const on = e.target.checked;
+  await chrome.storage.local.set({
+    [STORAGE_KEYS.deepFocusEnabled]: on,
+    ...on ? { [STORAGE_KEYS.focusModeEnabled]: true } : {}
+  });
+  await refresh();
+});
+document.getElementById("btnTabLock").addEventListener("click", async () => {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (tab?.id == null) return;
+  const snap = await chrome.runtime.sendMessage({ type: "GET_SNAPSHOT" });
+  const lockedIds = snap[STORAGE_KEYS.lockedTabIds] || [];
+  const locked = lockedIds.includes(tab.id);
+  try {
+    await chrome.runtime.sendMessage({
+      type: "SET_TAB_LOCK",
+      tabId: tab.id,
+      locked: !locked
+    });
+  } catch {
+    showError("Couldn\u2019t update tab lock.");
+    return;
+  }
+  await refresh();
+});
 var WATCH_KEYS = /* @__PURE__ */ new Set([
   STORAGE_KEYS.dailyBuckets,
   STORAGE_KEYS.dailyByHost,
@@ -315,7 +345,10 @@ var WATCH_KEYS = /* @__PURE__ */ new Set([
   STORAGE_KEYS.pomodoroState,
   STORAGE_KEYS.dailyGoalMinutes,
   STORAGE_KEYS.weeklyGoalMinutes,
-  STORAGE_KEYS.focusModeEnabled
+  STORAGE_KEYS.focusModeEnabled,
+  STORAGE_KEYS.deepFocusEnabled,
+  STORAGE_KEYS.focusOverrideUntil,
+  STORAGE_KEYS.lockedTabIds
 ]);
 chrome.storage.onChanged.addListener((changes, area) => {
   if (area !== "local") return;

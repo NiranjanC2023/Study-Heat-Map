@@ -1,23 +1,15 @@
 {
   "manifest_version": 3,
   "name": "Study Heatmap",
-  "version": "1.2.0",
-  "description": "Track productive sites, distractions, and study sessions — heatmaps, goals, Pomodoro, exports. Data stays local.",
-  "permissions": ["storage", "tabs", "alarms", "idle", "webNavigation"],
+  "version": "1.3.0",
+  "description": "Track focus, block distractions in Focus Mode, lock tabs, goals, Pomodoro, exports — data stays local.",
+  "permissions": ["storage", "tabs", "alarms", "idle", "webNavigation", "scripting"],
   "optional_permissions": ["notifications"],
   "host_permissions": ["<all_urls>"],
   "background": {
     "service_worker": "background.js",
     "type": "module"
   },
-  "content_scripts": [
-    {
-      "matches": ["http://*/*", "https://*/*"],
-      "js": ["tab-lock-indicator.js"],
-      "run_at": "document_start",
-      "all_frames": false
-    }
-  ],
   "action": {
     "default_popup": "popup.html",
     "default_title": "Study Heatmap",
@@ -32,11 +24,5 @@
     "48": "icons/icon48.png",
     "128": "icons/icon128.png"
   },
-  "options_page": "options.html",
-  "web_accessible_resources": [
-    {
-      "resources": ["stay-focused.html"],
-      "matches": ["<all_urls>"]
-    }
-  ]
+  "options_page": "options.html"
 }

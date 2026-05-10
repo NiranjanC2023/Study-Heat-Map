@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Stay Focused — Study Heatmap</title>
+    <link rel="stylesheet" href="blocked.css" />
+  </head>
+  <body>
+    <main class="card">
+      <p class="eyebrow">Study Heatmap</p>
+      <h1>Stay focused</h1>
+      <p class="lead">
+        This site is on your <strong>distraction</strong> list and Focus Mode is on.
+      </p>
+      <p id="targetHost" class="host muted"></p>
+      <div class="actions">
+        <button type="button" class="primary" id="btnBack">Go back</button>
+        <button type="button" class="ghost" id="btnOverride">Allow temporarily</button>
+      </div>
+      <p id="overrideHint" class="hint muted" hidden></p>
+      <p id="deepHint" class="hint warn" hidden>
+        Deep Focus is on — temporary overrides are disabled. Turn off Deep Focus in the popup to allow breaks.
+      </p>
+    </main>
+    <script type="module" src="blocked.js"></script>
+  </body>
+</html>

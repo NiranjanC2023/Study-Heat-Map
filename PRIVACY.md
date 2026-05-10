@@ -27,7 +27,8 @@ Study Heatmap is a browser extension that helps you understand how you spend tim
 | `tabs`                | Read the **active tab URL** to classify time; open the dashboard/onboarding. |
 | `alarms`              | Heartbeat for accruing time and Pomodoro phase reminders. |
 | `idle`                | Stop counting when the system/user is idle. |
-| `webNavigation`       | Detect in-page URL changes (SPAs) on the active tab. |
+| `webNavigation`       | SPA URL updates and Focus Mode redirects to the Stay Focused page. |
+| `scripting`           | Optional visual “locked tab” banner on pages you lock. |
 | `notifications`       | **Optional** — Pomodoro phase alerts only if you enable them and grant permission. |
 | `host_permissions`    | Access tab URLs for classification (required for URL-based rules in MV3). |
 
