@@ -122,21 +122,21 @@ function drawStackedWeeks(canvas, weeks, labels) {
     const hp = wk.productive / maxH * chartH;
     const hd = wk.distraction / maxH * chartH;
     const yBase = padT + chartH;
-    ctx.fillStyle = "rgba(225, 29, 72, 0.85)";
+    ctx.fillStyle = "rgba(255, 255, 255, 0.14)";
     ctx.fillRect(x0, yBase - hd, barW, hd);
-    ctx.fillStyle = "rgba(22, 163, 74, 0.9)";
+    ctx.fillStyle = "rgba(255, 255, 255, 0.92)";
     ctx.fillRect(x0, yBase - hd - hp, barW, hp);
     if (total === 0) {
-      ctx.fillStyle = "#27272a";
+      ctx.fillStyle = "#2a2a2a";
       ctx.fillRect(x0, yBase - 2, barW, 2);
     }
-    ctx.fillStyle = "#a1a1aa";
     ctx.font = "10px system-ui";
     ctx.textAlign = "center";
+    ctx.fillStyle = "#a3a3a3";
     ctx.fillText(labels[i], x0 + barW / 2, yBase + 18);
   });
   ctx.textAlign = "left";
-  ctx.fillStyle = "#71717a";
+  ctx.fillStyle = "#737373";
   ctx.font = "11px system-ui";
   ctx.fillText("Hours", 8, padT + 10);
 }
@@ -154,7 +154,7 @@ function drawLineFocus(canvas, points) {
   const min = 0;
   const max = 100;
   const n = points.length;
-  ctx.strokeStyle = "#27272a";
+  ctx.strokeStyle = "#2a2a2a";
   ctx.lineWidth = 1;
   for (let i = 0; i <= 4; i++) {
     const y = padT + ch * i / 4;
@@ -163,13 +163,13 @@ function drawLineFocus(canvas, points) {
     ctx.lineTo(padL + cw, y);
     ctx.stroke();
     const v = max - (max - min) * i / 4;
-    ctx.fillStyle = "#71717a";
+    ctx.fillStyle = "#737373";
     ctx.font = "10px system-ui";
     ctx.fillText(`${Math.round(v)}%`, 6, y + 3);
   }
   const usable = points.filter((p) => p.hasData);
   if (usable.length < 2) {
-    ctx.fillStyle = "#a1a1aa";
+    ctx.fillStyle = "#a3a3a3";
     ctx.font = "12px system-ui";
     ctx.fillText(
       "Not enough data yet \u2014 browse on classified sites, then refresh.",
@@ -179,7 +179,7 @@ function drawLineFocus(canvas, points) {
     return;
   }
   const step = cw / (n - 1);
-  ctx.strokeStyle = "rgba(234, 88, 12, 0.95)";
+  ctx.strokeStyle = "rgba(250, 250, 250, 0.95)";
   ctx.lineWidth = 2;
   ctx.beginPath();
   let started = false;
@@ -196,7 +196,7 @@ function drawLineFocus(canvas, points) {
     } else ctx.lineTo(x, y);
   });
   ctx.stroke();
-  ctx.fillStyle = "rgba(234, 88, 12, 0.95)";
+  ctx.fillStyle = "rgba(250, 250, 250, 0.95)";
   points.forEach((p, i) => {
     if (!p.hasData) return;
     const x = padL + i * step;
@@ -205,7 +205,7 @@ function drawLineFocus(canvas, points) {
     ctx.arc(x, y, 3, 0, Math.PI * 2);
     ctx.fill();
   });
-  ctx.fillStyle = "#71717a";
+  ctx.fillStyle = "#737373";
   ctx.font = "10px system-ui";
   ctx.textAlign = "center";
   ctx.fillText(points[0].label, padL, padT + ch + 18);
@@ -252,10 +252,10 @@ function renderHeatmap(root, buckets) {
       } else if (lvl > 0) {
         cell.style.background = [
           "",
-          "rgba(22, 163, 74, 0.28)",
-          "rgba(22, 163, 74, 0.45)",
-          "rgba(22, 163, 74, 0.68)",
-          "rgba(22, 163, 74, 0.95)"
+          "rgba(255, 255, 255, 0.15)",
+          "rgba(255, 255, 255, 0.32)",
+          "rgba(255, 255, 255, 0.55)",
+          "rgba(255, 255, 255, 0.92)"
         ][lvl];
       }
       const dateStr = d.toLocaleDateString(void 0, {

@@ -270,6 +270,13 @@ async function migrateFocusDefaults() {
   if (Object.keys(patch).length) await chrome.storage.local.set(patch);
 }
 async function updateActionBadge() {
+  const applyBadgeColors = async (backgroundColor, textColor) => {
+    chrome.action.setBadgeBackgroundColor({ color: backgroundColor });
+    try {
+      await chrome.action.setBadgeTextColor({ color: textColor });
+    } catch {
+    }
+  };
   try {
     const day = todayKey();
     const data = await chrome.storage.local.get(STORAGE_KEYS.dailyBuckets);
@@ -280,7 +287,8 @@ async function updateActionBadge() {
     if (p + d < 60) {
       const mins = Math.floor(p / 60);
       chrome.action.setBadgeText({ text: mins > 0 ? String(Math.min(mins, 999)) : "" });
-      chrome.action.setBadgeBackgroundColor({ color: mins > 0 ? "#16a34a" : "#27272a" });
+      if (mins > 0) await applyBadgeColors("#f5f5f5", "#000000");
+      else await applyBadgeColors("#262626", "#e5e5e5");
       await chrome.action.setTitle({
         title: mins > 0 ? `Study Heatmap \xB7 ${mins}m productive today` : "Study Heatmap"
       });
@@ -289,9 +297,9 @@ async function updateActionBadge() {
     const r = Math.round(100 * p / (p + d));
     const text = String(Math.min(r, 999));
     chrome.action.setBadgeText({ text });
-    chrome.action.setBadgeBackgroundColor({
-      color: r >= 55 ? "#16a34a" : r >= 40 ? "#52525b" : "#e11d48"
-    });
+    if (r >= 55) await applyBadgeColors("#ffffff", "#000000");
+    else if (r >= 40) await applyBadgeColors("#525252", "#fafafa");
+    else await applyBadgeColors("#171717", "#d4d4d4");
     await chrome.action.setTitle({
       title: `Study Heatmap \xB7 ${r}% focus today`
     });

@@ -1,67 +1,109 @@
 :root {
-  --bg: #0c0c0f;
-  --panel: #14141a;
-  --text: #eceae7;
-  --muted: #8b8794;
-  --accent: #ea580c;
-  --border: #2b2934;
-  font-family: "Segoe UI", system-ui, sans-serif;
+  --void: #000000;
+  --panel: #0a0a0a;
+  --text: #fafafa;
+  --muted: #737373;
+  --border: #2e2e2e;
+  --accent-surface: #f5f5f5;
+  --accent-ink: #0a0a0a;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, sans-serif;
+}
+
+@keyframes onboard-glow {
+  0% {
+    opacity: 0.38;
+  }
+  100% {
+    opacity: 0.52;
+  }
 }
 
 body {
   margin: 0;
-  background: var(--bg);
+  background-color: var(--void);
+  background-image:
+    radial-gradient(ellipse 85% 55% at 95% -10%, rgba(255, 255, 255, 0.065), transparent 52%),
+    radial-gradient(ellipse 75% 50% at 0% 100%, rgba(255, 255, 255, 0.045), transparent 48%);
   color: var(--text);
   line-height: 1.55;
+  min-height: 100vh;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: -25%;
+  pointer-events: none;
+  background: radial-gradient(ellipse 48% 40% at 58% 18%, rgba(255, 255, 255, 0.05), transparent 58%);
+  animation: onboard-glow 17s ease-in-out infinite alternate;
+  z-index: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body::before {
+    animation: none;
+    inset: 0;
+    opacity: 0.42;
+  }
 }
 
 .wrap {
-  max-width: 640px;
+  position: relative;
+  z-index: 1;
+  max-width: 680px;
   margin: 0 auto;
-  padding: 40px 24px 56px;
+  padding: 44px 26px 60px;
 }
 
 h1 {
-  margin: 0 0 12px;
-  font-size: 26px;
-  letter-spacing: -0.03em;
+  margin: 0 0 14px;
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  text-shadow: 0 0 48px rgba(255, 255, 255, 0.12);
 }
 
 .lead {
-  margin: 0 0 20px;
+  margin: 0 0 22px;
   color: var(--muted);
   font-size: 16px;
+  line-height: 1.55;
 }
 
 .lead strong {
   color: var(--text);
+  font-weight: 700;
 }
 
 .list {
-  margin: 0 0 20px;
-  padding-left: 1.2rem;
-  color: var(--text);
+  margin: 0 0 22px;
+  padding-left: 1.25rem;
+  color: #e8e8e8;
 }
 
 .list li {
-  margin-bottom: 10px;
+  margin-bottom: 12px;
 }
 
 .list code {
   background: var(--panel);
-  padding: 1px 6px;
-  border-radius: 4px;
-  font-size: 0.9em;
+  padding: 2px 7px;
+  border-radius: 6px;
+  font-size: 0.88em;
+  border: 1px solid var(--border);
 }
 
 .privacy {
   font-size: 14px;
   color: var(--muted);
-  margin: 0 0 28px;
+  margin: 0 0 30px;
+  line-height: 1.55;
 }
 
 .privacy a {
-  color: var(--accent);
+  color: var(--text);
+  font-weight: 650;
+  text-underline-offset: 3px;
 }
 
 .actions {
@@ -72,35 +114,49 @@ h1 {
 }
 
 .primary {
-  background: var(--accent);
-  color: #fff;
+  background: var(--accent-surface);
+  color: var(--accent-ink);
   border: none;
-  border-radius: 10px;
-  padding: 10px 20px;
+  border-radius: 11px;
+  padding: 11px 22px;
   font: inherit;
-  font-weight: 600;
+  font-weight: 750;
   cursor: pointer;
+  box-shadow: 0 0 26px rgba(255, 255, 255, 0.14);
+  transition:
+    box-shadow 0.2s ease,
+    transform 0.15s ease;
+}
+
+.primary:hover {
+  box-shadow: 0 0 36px rgba(255, 255, 255, 0.22);
+  transform: translateY(-1px);
 }
 
 .primary:focus-visible,
 .ghost:focus-visible {
-  outline: 2px solid rgba(234, 88, 12, 0.55);
-  outline-offset: 2px;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.18);
 }
 
 .ghost {
   background: transparent;
   color: var(--text);
   border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 10px 18px;
+  border-radius: 11px;
+  padding: 11px 20px;
   font: inherit;
-  font-weight: 600;
+  font-weight: 650;
   cursor: pointer;
 }
 
+.ghost:hover {
+  border-color: rgba(255, 255, 255, 0.38);
+  box-shadow: 0 0 18px rgba(255, 255, 255, 0.06);
+}
+
 @media (prefers-reduced-motion: reduce) {
-  * {
-    transition: none !important;
+  .primary:hover {
+    transform: none;
   }
 }
