@@ -143,6 +143,8 @@ var DEFAULT_DISTRACTION = [
 ];
 var ALARM_HEARTBEAT = "heartbeat";
 var ALARM_POMODORO = "pomodoro-phase";
+var ALARM_FOCUS_ACTIVE_POLL = "focus-active-poll";
+var FOCUS_ACTIVE_POLL_PERIOD_MIN = 3 / 60;
 var META_LAST_PRUNE = "_studyHeatmapLastPrune";
 var DEFAULT_GOAL_MINUTES = 120;
 var DEFAULT_WEEKLY_GOAL_MINUTES = 600;
@@ -152,6 +154,52 @@ var TAB_LOCK_MOUNT = "tab-lock-mount.js";
 var TAB_LOCK_UNMOUNT = "tab-lock-unmount.js";
 function extensionOriginPrefix() {
   return chrome.runtime.getURL("");
+}
+async function getLiveTabUrl(tabId, fallback) {
+  if (!fallback?.startsWith("http")) return fallback;
+  try {
+    const injected = await chrome.scripting.executeScript({
+      target: { tabId, allFrames: false },
+      func: () => window.location.href
+    });
+    const href = injected[0]?.result;
+    return typeof href === "string" ? href : fallback;
+  } catch {
+    return fallback;
+  }
+}
+async function syncFocusPollAlarm() {
+  await chrome.alarms.clear(ALARM_FOCUS_ACTIVE_POLL);
+  const { [STORAGE_KEYS.focusModeEnabled]: enabled } = await chrome.storage.local.get(
+    STORAGE_KEYS.focusModeEnabled
+  );
+  if (enabled !== true) return;
+  chrome.alarms.create(ALARM_FOCUS_ACTIVE_POLL, {
+    delayInMinutes: FOCUS_ACTIVE_POLL_PERIOD_MIN,
+    periodInMinutes: FOCUS_ACTIVE_POLL_PERIOD_MIN
+  });
+}
+async function pollActiveTabForFocusBlock() {
+  const { [STORAGE_KEYS.focusModeEnabled]: enabled } = await chrome.storage.local.get(
+    STORAGE_KEYS.focusModeEnabled
+  );
+  if (enabled !== true) return;
+  const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+  if (!tab?.id) return;
+  const fallback = tab.url ?? tab.pendingUrl;
+  const url = await getLiveTabUrl(tab.id, fallback);
+  await maybeRedirectBlockedTab(tab.id, url);
+}
+async function scanAllTabsForFocusBlock() {
+  const { [STORAGE_KEYS.focusModeEnabled]: enabled } = await chrome.storage.local.get(
+    STORAGE_KEYS.focusModeEnabled
+  );
+  if (enabled !== true) return;
+  const tabs = await chrome.tabs.query({});
+  for (const t of tabs) {
+    if (t.id == null) continue;
+    await maybeRedirectBlockedTab(t.id, t.url ?? t.pendingUrl);
+  }
 }
 async function maybeRedirectBlockedTab(tabId, url) {
   if (!url || !url.startsWith("http://") && !url.startsWith("https://")) return;
@@ -445,6 +493,7 @@ chrome.runtime.onInstalled.addListener(async (details) => {
     });
   }
   chrome.alarms.create(ALARM_HEARTBEAT, { periodInMinutes: 1 });
+  await syncFocusPollAlarm();
   await refreshActiveTab();
   void updateActionBadge();
   if (details.reason === "install") {
@@ -458,10 +507,15 @@ chrome.runtime.onInstalled.addListener(async (details) => {
 chrome.runtime.onStartup.addListener(async () => {
   chrome.alarms.create(ALARM_HEARTBEAT, { periodInMinutes: 1 });
   await migrateFocusDefaults();
+  await syncFocusPollAlarm();
   await refreshActiveTab();
   void updateActionBadge();
 });
 chrome.alarms.onAlarm.addListener(async (a) => {
+  if (a.name === ALARM_FOCUS_ACTIVE_POLL) {
+    await pollActiveTabForFocusBlock();
+    return;
+  }
   if (a.name === ALARM_POMODORO) {
     await onPomodoroAlarm();
     return;
@@ -507,6 +561,13 @@ chrome.webNavigation.onReferenceFragmentUpdated.addListener((d) => {
 });
 chrome.tabs.onActivated.addListener(async (activeInfo) => {
   await reinjectLockIfNeeded(activeInfo.tabId);
+  try {
+    const tab = await chrome.tabs.get(activeInfo.tabId);
+    const fallback = tab.url ?? tab.pendingUrl;
+    const url = await getLiveTabUrl(activeInfo.tabId, fallback);
+    await maybeRedirectBlockedTab(activeInfo.tabId, url);
+  } catch {
+  }
   await refreshActiveTab();
 });
 chrome.webNavigation.onCommitted.addListener((d) => {
@@ -553,6 +614,17 @@ chrome.idle.onStateChanged.addListener(async (state) => {
   }
 });
 chrome.idle.setDetectionInterval(60);
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area !== "local") return;
+  const fm = changes[STORAGE_KEYS.focusModeEnabled];
+  const prod = changes[STORAGE_KEYS.productiveHosts];
+  const dist = changes[STORAGE_KEYS.distractionHosts];
+  if (!fm && !prod && !dist) return;
+  void (async () => {
+    await syncFocusPollAlarm();
+    if (fm?.newValue === true || prod || dist) await scanAllTabsForFocusBlock();
+  })();
+});
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   void (async () => {
     if (msg?.type === "START_SESSION") {
