@@ -1,10 +1,10 @@
-const ROOT_ID = "study-heatmap-tab-lock-root";
+const ROOT_ID = "focus-flow-tab-lock-root";
 
 function mount(): void {
   if (document.getElementById(ROOT_ID)) return;
   const root = document.createElement("div");
   root.id = ROOT_ID;
-  root.setAttribute("data-study-heatmap-lock", "true");
+  root.setAttribute("data-focus-flow-lock", "true");
   root.innerHTML = `
     <style>
       #${ROOT_ID} { all: initial; font-family: system-ui, sans-serif; }
@@ -23,7 +23,7 @@ function mount(): void {
     </style>
     <div class="shm-lock-bar" role="status" aria-live="polite">
       <span class="shm-lock-icon" aria-hidden="true">🔒</span>
-      <span>Tab locked — Study Heatmap</span>
+      <span>Tab locked — Focus Flow</span>
     </div>
   `;
   document.documentElement.appendChild(root);

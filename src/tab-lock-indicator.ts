@@ -6,11 +6,11 @@ let isLocked = false;
 
 function createLockIndicator(): void {
   // Remove existing indicator
-  const existing = document.getElementById("study-heatmap-lock-indicator");
+  const existing = document.getElementById("focus-flow-lock-indicator");
   if (existing) existing.remove();
 
   const indicator = document.createElement("div");
-  indicator.id = "study-heatmap-lock-indicator";
+  indicator.id = "focus-flow-lock-indicator";
   indicator.innerHTML = `
     <div class="lock-badge">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
@@ -22,7 +22,7 @@ function createLockIndicator(): void {
 
   const style = document.createElement("style");
   style.textContent = `
-    #study-heatmap-lock-indicator {
+    #focus-flow-lock-indicator {
       position: fixed;
       top: 10px;
       right: 10px;
@@ -69,7 +69,7 @@ function createLockIndicator(): void {
 }
 
 function removeLockIndicator(): void {
-  const indicator = document.getElementById("study-heatmap-lock-indicator");
+  const indicator = document.getElementById("focus-flow-lock-indicator");
   if (indicator) {
     indicator.remove();
   }

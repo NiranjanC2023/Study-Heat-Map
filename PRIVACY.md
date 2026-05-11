@@ -1,16 +1,16 @@
-# Privacy policy — Study Heatmap
+# Privacy policy — Focus Flow
 
 Last updated: 2026-05-06.
 
 ## Summary
 
-Study Heatmap is a browser extension that helps you understand how you spend time on websites. **It does not send your browsing data to our servers** — we do not operate a backend for this extension. Information is stored **locally** in your browser using Chrome’s `storage` APIs.
+Focus Flow is a browser extension that helps you understand how you spend time on websites. **It does not send your browsing data to our servers** — we do not operate a backend for this extension. Information is stored **locally** in your browser using Chrome’s `storage` APIs.
 
 ## What the extension collects
 
 - **Time spent** on sites you classify as productive, distracting, or neutral (based on the active tab in a focused Chrome window).
 - **Host-level aggregates** to power “top sites” style summaries.
-- **Study session** start/end times, optional notes, and optional Pomodoro settings.
+- **Focus session** start/end times, optional notes, and optional Pomodoro settings.
 - **Settings** you configure (site rules, daily & weekly goals, notification preference).
 
 ## What the extension does not do

@@ -2,15 +2,15 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <title>Study Heatmap — Dashboard</title>
+    <title>Focus Flow — Dashboard</title>
     <link rel="stylesheet" href="dashboard.css" />
   </head>
   <body>
     <div class="page">
       <header class="hero">
         <div>
-          <h1>Study Heatmap</h1>
-          <p class="tagline">Focus trends, productivity mix, exports, and week-over-week summaries.</p>
+          <h1>Focus Flow</h1>
+          <p class="tagline">Your focus trends, productivity mix, exports, and week-over-week summaries.</p>
           <p id="dashError" class="dash-error" role="alert" hidden></p>
         </div>
         <div class="hero-actions">
@@ -30,8 +30,8 @@
 
       <section class="card">
         <div class="card-head">
-          <h2>Productive time heatmap</h2>
-          <p class="desc">Each cell is a day; depth follows productive browsing (rules you configured).</p>
+          <h2>Productivity grid</h2>
+          <p class="desc">Each cell is a day; brightness follows productive time (rules you configured).</p>
         </div>
         <div class="heatmap-wrap">
           <div class="dow" aria-hidden="true">
@@ -86,7 +86,7 @@
 
       <section class="card">
         <div class="card-head">
-          <h2>Recent study sessions</h2>
+          <h2>Recent focus sessions</h2>
           <p class="desc">Last 14 days, newest first (wall-clock session timer).</p>
         </div>
         <div id="sessionTimeline" class="table-wrap"></div>

@@ -145,7 +145,8 @@ var ALARM_HEARTBEAT = "heartbeat";
 var ALARM_POMODORO = "pomodoro-phase";
 var ALARM_FOCUS_ACTIVE_POLL = "focus-active-poll";
 var FOCUS_ACTIVE_POLL_PERIOD_MIN = 3 / 60;
-var META_LAST_PRUNE = "_studyHeatmapLastPrune";
+var META_LAST_PRUNE = "_focusFlowLastPrune";
+var META_LAST_PRUNE_LEGACY = "_studyHeatmapLastPrune";
 var DEFAULT_GOAL_MINUTES = 120;
 var DEFAULT_WEEKLY_GOAL_MINUTES = 600;
 var pulse = null;
@@ -290,7 +291,7 @@ async function updateActionBadge() {
       if (mins > 0) await applyBadgeColors("#f5f5f5", "#000000");
       else await applyBadgeColors("#262626", "#e5e5e5");
       await chrome.action.setTitle({
-        title: mins > 0 ? `Study Heatmap \xB7 ${mins}m productive today` : "Study Heatmap"
+        title: mins > 0 ? `Focus Flow \xB7 ${mins}m productive today` : "Focus Flow"
       });
       return;
     }
@@ -301,7 +302,7 @@ async function updateActionBadge() {
     else if (r >= 40) await applyBadgeColors("#525252", "#fafafa");
     else await applyBadgeColors("#171717", "#d4d4d4");
     await chrome.action.setTitle({
-      title: `Study Heatmap \xB7 ${r}% focus today`
+      title: `Focus Flow \xB7 ${r}% focus today`
     });
   } catch {
   }
@@ -401,8 +402,15 @@ async function refreshActiveTab() {
 }
 async function maybePrune() {
   const d = todayKey();
-  const meta = await chrome.storage.local.get(META_LAST_PRUNE);
-  if (meta[META_LAST_PRUNE] === d) return;
+  const meta = await chrome.storage.local.get([META_LAST_PRUNE, META_LAST_PRUNE_LEGACY]);
+  const alreadyDone = meta[META_LAST_PRUNE] === d || meta[META_LAST_PRUNE_LEGACY] === d;
+  if (alreadyDone) {
+    if (meta[META_LAST_PRUNE] !== d && meta[META_LAST_PRUNE_LEGACY] === d) {
+      await chrome.storage.local.set({ [META_LAST_PRUNE]: d });
+      await chrome.storage.local.remove(META_LAST_PRUNE_LEGACY);
+    }
+    return;
+  }
   const cutoff = cutoffDateKey(/* @__PURE__ */ new Date(), RETENTION_DAYS);
   const bk = STORAGE_KEYS.dailyBuckets;
   const buckets = (await chrome.storage.local.get(bk))[bk] || {};
@@ -421,6 +429,7 @@ async function maybePrune() {
     [hk]: nextH,
     [META_LAST_PRUNE]: d
   });
+  await chrome.storage.local.remove(META_LAST_PRUNE_LEGACY);
 }
 async function schedulePomodoroAlarm(delayMs) {
   await chrome.alarms.clear(ALARM_POMODORO);
@@ -459,7 +468,7 @@ async function onPomodoroAlarm() {
         await chrome.notifications.create({
           type: "basic",
           iconUrl: icon,
-          title: "Study Heatmap",
+          title: "Focus Flow",
           message: "Break time \u2014 short rest before the next focus block."
         });
       } catch {
@@ -474,7 +483,7 @@ async function onPomodoroAlarm() {
         await chrome.notifications.create({
           type: "basic",
           iconUrl: icon,
-          title: "Study Heatmap",
+          title: "Focus Flow",
           message: "Focus block \u2014 time for the next work session."
         });
       } catch {
@@ -640,7 +649,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
       const sessions = data[STORAGE_KEYS.sessions] || [];
       const id = `${Date.now()}`;
       const start = Date.now();
-      const label = msg.label || "Study";
+      const label = msg.label || "Focus";
       const workMin = msg.pomodoro?.workMin;
       const breakMin = msg.pomodoro?.breakMin;
       const s = {

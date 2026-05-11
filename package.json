@@ -1,8 +1,8 @@
 {
-  "name": "study-heatmap-extension",
+  "name": "focus-flow-extension",
   "private": true,
-  "version": "1.3.2",
-  "description": "Study Heatmap Chrome extension",
+  "version": "1.3.3",
+  "description": "Focus Flow — Chrome extension for focus tracking and distraction blocking",
   "scripts": {
     "build": "node scripts/build.mjs",
     "test": "vitest run",

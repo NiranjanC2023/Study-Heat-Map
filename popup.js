@@ -230,7 +230,7 @@ document.getElementById("btnStart").addEventListener("click", async () => {
   try {
     await chrome.runtime.sendMessage({
       type: "START_SESSION",
-      label: pom ? "Pomodoro" : "Study",
+      label: pom ? "Pomodoro" : "Focus",
       ...pom ? { pomodoro: pom } : {}
     });
   } catch {

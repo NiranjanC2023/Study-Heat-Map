@@ -437,14 +437,14 @@ function renderWeekly(container, buckets, sessions, weeklyGoalMinutes) {
   container.innerHTML = `
     <div class="stat good"><div class="k">Productive</div><div class="v">${fmtHours(productive)}</div></div>
     <div class="stat bad"><div class="k">Distraction</div><div class="v">${fmtHours(distraction)}</div></div>
-    <div class="stat"><div class="k">Study timer</div><div class="v">${fmtHours(study)}</div></div>
+    <div class="stat"><div class="k">Focus timer</div><div class="v">${fmtHours(study)}</div></div>
     <div class="stat"><div class="k">Focus ratio</div><div class="v">${r == null ? "\u2014" : r + "%"}</div></div>
     <div class="stat good"><div class="k">Weekly goal</div><div class="v">${fmtHours(weekProdTracked)} / ${weeklyGoalMinutes}m</div></div>
     <div class="stat"><div class="k">Goal progress</div><div class="v">${weekGoalPct}%</div></div>
     <div class="stat"><div class="k">Sessions (week)</div><div class="v">${weekSessions.length}</div></div>
     <div class="stat"><div class="k">Avg session</div><div class="v">${avgMin ? avgMin + " min" : "\u2014"}</div></div>
     <div class="stat note">
-      Week <strong>${wk}</strong>. Study timer accrues during active sessions while Chrome is focused; site totals use your rules.
+      Week <strong>${wk}</strong>. Focus timer accrues during active sessions while Chrome is focused; site totals use your rules.
       ${notes.length ? `<br /><br />Recent notes: ${notes.map((s) => `<em>${escapeHtml(s.note || "")}</em>`).join(" \xB7 ")}` : ""}
     </div>
   `;
@@ -458,7 +458,7 @@ function renderSessionTimeline(root, sessions) {
   }
   root.innerHTML = `
     <table class="hosts">
-      <caption class="sr-only">Recent study sessions</caption>
+      <caption class="sr-only">Recent focus sessions</caption>
       <thead>
         <tr>
           <th scope="col">Start</th>
@@ -560,13 +560,13 @@ async function render() {
   document.getElementById("exportJson").onclick = async () => {
     const data = await exportPayload();
     downloadText(
-      `study-heatmap-${todayKey()}.json`,
+      `focus-flow-${todayKey()}.json`,
       JSON.stringify(data, null, 2),
       "application/json"
     );
   };
   document.getElementById("exportCsv").onclick = () => {
-    downloadText(`study-heatmap-daily-${todayKey()}.csv`, toCsv(buckets), "text/csv");
+    downloadText(`focus-flow-daily-${todayKey()}.csv`, toCsv(buckets), "text/csv");
   };
 }
 document.getElementById("reload").addEventListener("click", () => void render());

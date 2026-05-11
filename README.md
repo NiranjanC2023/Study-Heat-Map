@@ -1,6 +1,6 @@
-# Study Heatmap
+# Focus Flow
 
-Chrome extension (Manifest V3) that tracks time on **productive** vs **distraction** sites (including **path rules** and **SPA navigations**), **Focus Mode** (redirect distractions to **Stay Focused** with optional cooldown override), **Deep Focus** (no override), **tab lock** (pin + on-page banner), **pause** windows, **daily & weekly goals**, **streaks**, a **toolbar badge**, **quick-add** for the current site, **Pomodoro** (optional notifications), **exports**, and dashboards (heatmap, **top hosts**, **session timeline**, week-over-week). **Data stays local** — see `PRIVACY.md`.
+Chrome extension (Manifest V3) that tracks time on **productive** vs **distraction** sites (including **path rules** and **SPA navigations**), **Focus Mode** (redirect distractions to **Stay Focused** with optional cooldown override), **Deep Focus** (no override), **tab lock** (pin + on-page banner), **pause** windows, **daily & weekly goals**, **streaks**, a **toolbar badge**, **quick-add** for the current site, **Pomodoro** (optional notifications), **exports**, and dashboards (productivity grid, **top hosts**, **session timeline**, week-over-week). **Data stays local** — see `PRIVACY.md`.
 
 ## Install (development)
 
@@ -17,7 +17,7 @@ Chrome extension (Manifest V3) that tracks time on **productive** vs **distracti
 
 - **Popup**: Focus / Deep Focus toggles, tab lock, daily & weekly goals, streak, quick-add host, pause, Pomodoro, sessions, live totals, dashboard link.
 - **Options**: rules (`host` or `host/path`), daily & weekly productive goals (minutes), optional Pomodoro notifications (permission prompt on save).
-- **Dashboard**: heatmap, charts, week-over-week, top productive & distraction hosts (7d), recent sessions, JSON/CSV export, weekly report.
+- **Dashboard**: productivity grid, charts, week-over-week, top productive & distraction hosts (7d), recent sessions, JSON/CSV export, weekly report.
 - **Onboarding**: opens once on install; reopen from the popup (“How it works”).
 
 ## Development
@@ -53,18 +53,18 @@ chmod +x scripts/git-init.sh   # once
 
 Then use **Git in the browser** (no `gh` needed):
 
-1. On [github.com/new](https://github.com/new), create a repository (e.g. `study-heatmap`). Do **not** add a README, `.gitignore`, or license (keep it empty so your first push works).
+1. On [github.com/new](https://github.com/new), create a repository (e.g. `Focus-Flow`). Do **not** add a README, `.gitignore`, or license (keep it empty so your first push works).
 2. Copy the repo URL GitHub shows (HTTPS or SSH).
 3. In your project folder:
 
 ```bash
-git remote add origin https://github.com/YOUR_USERNAME/study-heatmap.git
+git remote add origin https://github.com/YOUR_USERNAME/Focus-Flow.git
 git push -u origin main
 ```
 
-(Use your real username and repo name. For SSH: `git@github.com:YOUR_USERNAME/study-heatmap.git`.)
+(Use your real username and repo name. For SSH: `git@github.com:YOUR_USERNAME/Focus-Flow.git`.)
 
-**Optional — GitHub CLI:** the `gh` command is not installed by default. To use it: `brew install gh`, then `gh auth login`, then e.g. `gh repo create study-heatmap --public --source=. --remote=origin --push`.
+**Optional — GitHub CLI:** the `gh` command is not installed by default. To use it: `brew install gh`, then `gh auth login`, then e.g. `gh repo create Focus-Flow --public --source=. --remote=origin --push`.
 
 ## License
 

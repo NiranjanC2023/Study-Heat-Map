@@ -34,7 +34,8 @@ const ALARM_POMODORO = "pomodoro-phase";
 /** ~3s; catches focus toggle + tab switches without navigation events, and SPA URL drift. */
 const ALARM_FOCUS_ACTIVE_POLL = "focus-active-poll";
 const FOCUS_ACTIVE_POLL_PERIOD_MIN = 3 / 60;
-const META_LAST_PRUNE = "_studyHeatmapLastPrune";
+const META_LAST_PRUNE = "_focusFlowLastPrune";
+const META_LAST_PRUNE_LEGACY = "_studyHeatmapLastPrune";
 
 const DEFAULT_GOAL_MINUTES = 120;
 const DEFAULT_WEEKLY_GOAL_MINUTES = 600;
@@ -201,7 +202,7 @@ async function updateActionBadge(): Promise<void> {
       if (mins > 0) await applyBadgeColors("#f5f5f5", "#000000");
       else await applyBadgeColors("#262626", "#e5e5e5");
       await chrome.action.setTitle({
-        title: mins > 0 ? `Study Heatmap · ${mins}m productive today` : "Study Heatmap",
+        title: mins > 0 ? `Focus Flow · ${mins}m productive today` : "Focus Flow",
       });
       return;
     }
@@ -212,7 +213,7 @@ async function updateActionBadge(): Promise<void> {
     else if (r >= 40) await applyBadgeColors("#525252", "#fafafa");
     else await applyBadgeColors("#171717", "#d4d4d4");
     await chrome.action.setTitle({
-      title: `Study Heatmap · ${r}% focus today`,
+      title: `Focus Flow · ${r}% focus today`,
     });
   } catch {
     /* ignore */
@@ -330,8 +331,16 @@ async function refreshActiveTab(): Promise<void> {
 
 async function maybePrune(): Promise<void> {
   const d = todayKey();
-  const meta = await chrome.storage.local.get(META_LAST_PRUNE);
-  if (meta[META_LAST_PRUNE] === d) return;
+  const meta = await chrome.storage.local.get([META_LAST_PRUNE, META_LAST_PRUNE_LEGACY]);
+  const alreadyDone =
+    meta[META_LAST_PRUNE] === d || meta[META_LAST_PRUNE_LEGACY] === d;
+  if (alreadyDone) {
+    if (meta[META_LAST_PRUNE] !== d && meta[META_LAST_PRUNE_LEGACY] === d) {
+      await chrome.storage.local.set({ [META_LAST_PRUNE]: d });
+      await chrome.storage.local.remove(META_LAST_PRUNE_LEGACY);
+    }
+    return;
+  }
   const cutoff = cutoffDateKey(new Date(), RETENTION_DAYS);
   const bk = STORAGE_KEYS.dailyBuckets;
   const buckets = ((await chrome.storage.local.get(bk))[bk] as Record<string, DailyRow>) || {};
@@ -350,6 +359,7 @@ async function maybePrune(): Promise<void> {
     [hk]: nextH,
     [META_LAST_PRUNE]: d,
   });
+  await chrome.storage.local.remove(META_LAST_PRUNE_LEGACY);
 }
 
 async function schedulePomodoroAlarm(delayMs: number): Promise<void> {
@@ -393,7 +403,7 @@ async function onPomodoroAlarm(): Promise<void> {
         await chrome.notifications.create({
           type: "basic",
           iconUrl: icon,
-          title: "Study Heatmap",
+          title: "Focus Flow",
           message: "Break time — short rest before the next focus block.",
         });
       } catch {
@@ -409,7 +419,7 @@ async function onPomodoroAlarm(): Promise<void> {
         await chrome.notifications.create({
           type: "basic",
           iconUrl: icon,
-          title: "Study Heatmap",
+          title: "Focus Flow",
           message: "Focus block — time for the next work session.",
         });
       } catch {
@@ -597,7 +607,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
       const sessions = (data[STORAGE_KEYS.sessions] as Session[]) || [];
       const id = `${Date.now()}`;
       const start = Date.now();
-      const label = (msg.label as string) || "Study";
+      const label = (msg.label as string) || "Focus";
       const workMin = msg.pomodoro?.workMin as number | undefined;
       const breakMin = msg.pomodoro?.breakMin as number | undefined;
       const s: Session = {
