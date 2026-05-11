@@ -80,11 +80,33 @@ body::after {
 
 .hero {
   display: flex;
-  align-items: flex-end;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 18px;
   margin-bottom: 26px;
   flex-wrap: wrap;
+}
+
+.hero-brand {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  min-width: min(100%, 280px);
+}
+
+.hero-logo {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  object-fit: cover;
+  flex-shrink: 0;
+  box-shadow:
+    0 0 36px rgba(255, 255, 255, 0.12),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+}
+
+.hero-copy {
+  min-width: 0;
 }
 
 .hero-actions {

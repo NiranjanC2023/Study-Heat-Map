@@ -131,11 +131,12 @@ body > * {
   width: 36px;
   height: 36px;
   border-radius: 11px;
-  background: linear-gradient(155deg, #ffffff 0%, #a8a8a8 48%, #404040 100%);
+  object-fit: cover;
+  flex-shrink: 0;
+  display: block;
   box-shadow:
-    0 0 28px rgba(255, 255, 255, 0.22),
-    inset 0 1px 0 rgba(255, 255, 255, 0.65),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.35);
+    0 0 28px rgba(255, 255, 255, 0.14),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.12);
 }
 
 h1 {
